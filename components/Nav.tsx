@@ -74,7 +74,7 @@ const links = [
 ];
 
 export default function Nav() {
-  const caminho = usePathname();
+  const caminho = usePathname() ?? "";
 
   return (
     <header className="topbar">

@@ -18,6 +18,11 @@ type Concurso = {
   materias: Materia[];
 };
 
+// Formato bruto devolvido pelo banco, ainda com os campos de exclusão lógica.
+type TopicoBruto = Topico & { deleted_at: string | null };
+type MateriaBruta = Omit<Materia, "topicos"> & { deleted_at: string | null; topicos: TopicoBruto[] };
+type ConcursoBruto = Omit<Concurso, "materias"> & { materias: MateriaBruta[] };
+
 const ROTULO_STATUS: Record<string, string> = {
   nao_iniciado: "Não iniciado",
   estudando: "Estudando",
@@ -43,9 +48,7 @@ export default async function EditalPage() {
     .order("created_at");
 
   // Remove itens "excluídos" (exclusão lógica) das listas aninhadas.
-  const concursos = ((data ?? []) as unknown as (Concurso & {
-    materias: (Materia & { deleted_at: string | null; topicos: (Topico & { deleted_at: string | null })[] })[];
-  })[]).map((c) => ({
+  const concursos: Concurso[] = ((data ?? []) as unknown as ConcursoBruto[]).map((c) => ({
     ...c,
     materias: c.materias
       .filter((m) => !m.deleted_at)
