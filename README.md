@@ -39,6 +39,14 @@ Next.js (PWA) + Supabase + Vercel, tudo em planos gratuitos.
   voltam se o acerto estiver abaixo de 70%.
   Requer rodar `supabase/fase3_prioridades.sql` uma vez no SQL Editor. Sem isso, a tela avisa o que fazer.
 
+## Importar edital com IA
+
+Em **Edital → Importar edital em PDF com IA** (`/edital/importar`): envie o PDF (até 4 MB; se for grande,
+só as páginas do conteúdo programático), o Gemini extrai concurso, banca, cargo, data da prova, matérias
+(com peso estimado) e tópicos. Você revisa e edita tudo antes de salvar; nada é gravado antes disso.
+Requer a variável `GEMINI_API_KEY` (chave gratuita em aistudio.google.com/apikey) na Vercel, sem o prefixo
+`NEXT_PUBLIC_`. Opcional: `GEMINI_MODEL` para trocar o modelo (padrão `gemini-2.5-flash`).
+
 Ainda fora do projeto, de propósito: notificações, simulados e modo offline.
 
 ## Como colocar para rodar
@@ -84,4 +92,5 @@ app/                páginas (painel, edital, estudo, questoes, erros, flashcard
 components/         formulário de estudo com cronômetro, lista de revisões, relatórios, menu
 lib/                datas, regra das revisões, cálculo dos relatórios, consultas e clientes do Supabase
 supabase/            schema.sql (MVP), fase2_erros.sql, fase2_flashcards.sql e fase3_prioridades.sql: tabelas, índices e regras de segurança
+_anterior/          arquivos de uma versão anterior, guardados sem uso (podem ser apagados)
 ```

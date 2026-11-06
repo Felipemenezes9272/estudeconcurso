@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hoje, somarDias } from "@/lib/datas";
+import { normalizarEdital } from "@/lib/edital-ia";
 import { agendar, type Nota } from "@/lib/flashcards";
 import {
   INTERVALO_REVISAO_DIFICIL,
@@ -39,6 +40,61 @@ export async function criarConcurso(formData: FormData) {
   if (error) falhar(error.message);
 
   revalidatePath("/edital");
+}
+
+/** Salva o edital revisado na tela de importação: concurso, matérias e tópicos. */
+export async function importarEdital(formData: FormData) {
+  let bruto: unknown;
+  try {
+    bruto = JSON.parse(texto(formData, "dados"));
+  } catch {
+    falhar("Dados do edital inválidos.");
+  }
+  const edital = normalizarEdital(bruto);
+  if (!edital.nome) falhar("Informe o nome do concurso.");
+  if (edital.materias.length === 0) falhar("Inclua ao menos uma matéria.");
+
+  const supabase = await createClient();
+
+  const { data: concurso, error: erroConcurso } = await supabase
+    .from("concursos")
+    .insert({
+      nome: edital.nome,
+      banca: edital.banca || null,
+      cargo: edital.cargo || null,
+      data_prova: edital.data_prova || null,
+    })
+    .select("id")
+    .single();
+  if (erroConcurso || !concurso) falhar(erroConcurso?.message ?? "Não consegui criar o concurso.");
+
+  for (const materia of edital.materias) {
+    const { data: criada, error: erroMateria } = await supabase
+      .from("materias")
+      .insert({ concurso_id: concurso.id, nome: materia.nome, peso: materia.peso, dificuldade: 3 })
+      .select("id")
+      .single();
+
+    let mensagem = erroMateria?.message ?? (criada ? "" : "Não consegui criar a matéria.");
+    if (!mensagem && materia.topicos.length > 0) {
+      const { error: erroTopicos } = await supabase
+        .from("topicos")
+        .insert(materia.topicos.map((nome, i) => ({ materia_id: criada!.id, nome, ordem: i })));
+      mensagem = erroTopicos?.message ?? "";
+    }
+
+    if (mensagem) {
+      // Desfaz: esconde o concurso incompleto (exclusão lógica) para não ficar lixo na tela.
+      await supabase
+        .from("concursos")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", concurso.id);
+      falhar(mensagem);
+    }
+  }
+
+  revalidatePath("/edital");
+  redirect("/edital");
 }
 
 export async function criarMateria(formData: FormData) {

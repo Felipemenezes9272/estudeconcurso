@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   alterarStatusTopico,
   criarConcurso,
@@ -61,6 +62,9 @@ export default async function EditalPage() {
   return (
     <>
       <h1>Edital</h1>
+      <p className="row" style={{ marginBottom: 12 }}>
+        <Link href="/edital/importar">Importar edital em PDF com IA →</Link>
+      </p>
 
       {concursos.length === 0 && (
         <p className="muted">Nenhum concurso cadastrado ainda. Comece criando o primeiro abaixo.</p>
