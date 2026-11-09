@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hoje, somarDias } from "@/lib/datas";
 import { normalizarEdital } from "@/lib/edital-ia";
+import { contarAcertos } from "@/lib/simulados";
 import { agendar, type Nota } from "@/lib/flashcards";
 import {
   INTERVALO_REVISAO_DIFICIL,
@@ -640,4 +641,96 @@ export async function editarFlashcard(formData: FormData) {
   if (error) falhar(error.message);
 
   revalidatePath("/", "layout");
+}
+
+// ---------- Simulados ----------
+
+export async function finalizarSimulado(formData: FormData) {
+  const id = texto(formData, "simulado_id");
+  const supabase = await createClient();
+
+  const { data: simulado, error } = await supabase
+    .from("simulados")
+    .select("id, topico_id, finalizado_em")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) falhar(error.message);
+  if (!simulado) falhar("Simulado não encontrado.");
+  if (simulado.finalizado_em) redirect(`/simulados/${id}`); // já corrigido (ex.: duplo clique)
+
+  const { data: lista, error: erroQuestoes } = await supabase
+    .from("simulado_questoes")
+    .select("id, correta, alternativas")
+    .eq("simulado_id", id)
+    .order("ordem");
+  if (erroQuestoes) falhar(erroQuestoes.message);
+  const questoes = (lista ?? []) as { id: string; correta: number; alternativas: unknown[] }[];
+
+  // Respostas vêm como r_<id da questão> = índice da alternativa; em branco = sem resposta.
+  const respostas = questoes.map((q) => {
+    const bruto = formData.get(`r_${q.id}`);
+    if (bruto === null || bruto === "") return null;
+    const n = Number.parseInt(String(bruto), 10);
+    return Number.isInteger(n) && n >= 0 && n < q.alternativas.length ? n : null;
+  });
+
+  for (let i = 0; i < questoes.length; i++) {
+    const { error: erroResposta } = await supabase
+      .from("simulado_questoes")
+      .update({ resposta: respostas[i] })
+      .eq("id", questoes[i].id);
+    if (erroResposta) falhar(erroResposta.message);
+  }
+
+  const acertos = contarAcertos(questoes, respostas);
+  const { error: erroFinal } = await supabase
+    .from("simulados")
+    .update({ acertos, finalizado_em: agora() })
+    .eq("id", id);
+  if (erroFinal) falhar(erroFinal.message);
+
+  // Com tópico vinculado, o resultado também entra nos registros de questões (relatórios e prioridades).
+  if (simulado.topico_id && questoes.length > 0) {
+    await supabase.from("registros_questoes").insert({
+      topico_id: simulado.topico_id,
+      total: questoes.length,
+      acertos,
+      data: hoje(),
+    });
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/simulados/${id}`);
+}
+
+export async function refazerSimulado(formData: FormData) {
+  const id = texto(formData, "simulado_id");
+  const supabase = await createClient();
+
+  const { error: e1 } = await supabase
+    .from("simulado_questoes")
+    .update({ resposta: null })
+    .eq("simulado_id", id);
+  if (e1) falhar(e1.message);
+  const { error: e2 } = await supabase
+    .from("simulados")
+    .update({ acertos: null, finalizado_em: null })
+    .eq("id", id);
+  if (e2) falhar(e2.message);
+
+  revalidatePath("/", "layout");
+  redirect(`/simulados/${id}`);
+}
+
+export async function excluirSimulado(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("simulados")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "simulado_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+  redirect("/simulados");
 }

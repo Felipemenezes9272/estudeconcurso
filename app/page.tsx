@@ -99,6 +99,7 @@ export default async function PainelPage() {
       )}
 
       <p className="row" style={{ justifyContent: "center", gap: 20 }}>
+        <Link href="/simulados">Simulados com IA →</Link>
         <Link href="/prioridades">O que estudar primeiro →</Link>
         <Link href="/relatorios">Relatórios de evolução →</Link>
       </p>

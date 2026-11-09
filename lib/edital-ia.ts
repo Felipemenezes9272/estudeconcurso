@@ -10,7 +10,6 @@ export type EditalExtraido = {
   materias: MateriaExtraida[];
 };
 
-export const LIMITE_PDF_BYTES = 4 * 1024 * 1024; // limite de corpo das funções da Vercel é ~4,5 MB
 const MAX_MATERIAS = 40;
 const MAX_TOPICOS = 400;
 

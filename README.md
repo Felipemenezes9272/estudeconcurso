@@ -47,7 +47,16 @@ só as páginas do conteúdo programático), o Gemini extrai concurso, banca, ca
 Requer a variável `GEMINI_API_KEY` (chave gratuita em aistudio.google.com/apikey) na Vercel, sem o prefixo
 `NEXT_PUBLIC_`. Opcional: `GEMINI_MODEL` para trocar o modelo (padrão `gemini-2.5-flash`).
 
-Ainda fora do projeto, de propósito: notificações, simulados e modo offline.
+## Fase 4: Simulados com IA
+
+Em **Simulados** (`/simulados`, link no painel): envie um PDF (apostila, resumo, lei; até 4 MB) e o Gemini
+monta de 3 a 20 questões só com o conteúdo dele, em múltipla escolha (A a E) ou certo/errado (estilo
+Cebraspe), no nível que você escolher. Você resolve, finaliza e vê o gabarito comentado; dá para refazer.
+Se vincular o simulado a um tópico do edital, o resultado entra nos registros de questões (relatórios e
+prioridades). Usa a mesma `GEMINI_API_KEY` da importação de edital.
+Requer rodar `supabase/fase4_simulados.sql` uma vez no SQL Editor. Sem isso, a tela avisa o que fazer.
+
+Ainda fora do projeto, de propósito: notificações e modo offline.
 
 ## Como colocar para rodar
 
@@ -55,7 +64,7 @@ Ainda fora do projeto, de propósito: notificações, simulados e modo offline.
 
 1. Crie uma conta gratuita em supabase.com e um novo projeto.
 2. Abra **SQL Editor**, cole todo o conteúdo de `supabase/schema.sql` e execute. Depois faça o mesmo
-   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades).
+   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades) e `supabase/fase4_simulados.sql` (simulados).
 3. Em **Authentication → Providers → Email**, se quiser entrar logo após criar a conta, desligue
    "Confirm email" (é uso pessoal). Se deixar ligado, confirme o e-mail recebido antes de entrar.
 4. Em **Project Settings → API**, copie a **Project URL** e a chave **anon public**.
