@@ -51,38 +51,50 @@ export async function extrairJsonDoPdf(
     "gemini-3.5-flash-lite",
   ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
 
-  const corpo = JSON.stringify({
-    contents: [
-      {
-        parts: [
-          { inline_data: { mime_type: "application/pdf", data: bytes.toString("base64") } },
-          { text: prompt },
-        ],
+  // Os modelos 3.x "pensam" por padrão (nível médio), o que estoura o tempo da função.
+  // Pedimos pensamento baixo; se a API não aceitar o campo (400), repetimos sem ele.
+  const montarCorpo = (comPensamento: boolean) =>
+    JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { inline_data: { mime_type: "application/pdf", data: bytes.toString("base64") } },
+            { text: prompt },
+          ],
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: 32768,
+        responseMimeType: "application/json",
+        responseSchema: esquema,
+        ...(comPensamento ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
       },
-    ],
-    generationConfig: {
-      maxOutputTokens: 32768,
-      responseMimeType: "application/json",
-      responseSchema: esquema,
-    },
-  });
+    });
+
+  const prazo = Date.now() + 55_000; // a função da Vercel é encerrada aos 60 s
+  const chamar = (modelo: string, comPensamento: boolean) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+        body: montarCorpo(comPensamento),
+        signal: AbortSignal.timeout(Math.max(1_000, prazo - Date.now())),
+      },
+    );
 
   let resposta: Response | null = null;
-  for (const modelo of modelos) {
-    try {
-      resposta = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
-          body: corpo,
-          signal: AbortSignal.timeout(55_000),
-        },
-      );
-    } catch {
-      return falha("O Gemini demorou demais ou não respondeu. Tente de novo em instantes.", 504);
+  try {
+    for (const modelo of modelos) {
+      resposta = await chamar(modelo, true);
+      if (resposta.status === 400) resposta = await chamar(modelo, false);
+      if (resposta.status !== 404) break;
     }
-    if (resposta.status !== 404) break;
+  } catch {
+    return falha(
+      "O Gemini demorou demais. Tente com menos questões ou com um PDF menor (poucas páginas).",
+      504,
+    );
   }
 
   if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
