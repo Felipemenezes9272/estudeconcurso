@@ -71,7 +71,7 @@ export async function extrairJsonDoPdf(
       },
     });
 
-  const prazo = Date.now() + 55_000; // a função da Vercel é encerrada aos 60 s
+  const prazo = Date.now() + 280_000; // a função da Vercel (maxDuration 300) é encerrada aos 300 s
   const chamar = (modelo: string, comPensamento: boolean) =>
     fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
@@ -95,12 +95,12 @@ export async function extrairJsonDoPdf(
         if (resposta.status === 400) resposta = await chamar(modelo, false);
         if (!tentarOutro(resposta.status)) break rodadas;
       }
-      if (prazo - Date.now() < 20_000) break;
+      if (prazo - Date.now() < 60_000) break;
       await new Promise((r) => setTimeout(r, 2_000));
     }
   } catch {
     return falha(
-      "O Gemini demorou demais. Tente com menos questões ou com um PDF menor (poucas páginas).",
+      "O Gemini demorou demais (mais de 4 minutos). Tente com um PDF menor (só as páginas do conteúdo programático) ou, nos simulados, com menos questões.",
       504,
     );
   }

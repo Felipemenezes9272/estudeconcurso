@@ -100,7 +100,7 @@ export default function GerarSimulado({ topicos }: { topicos: TopicoOpcao[] }) {
         </p>
       )}
       <button className="primario" disabled={gerando}>
-        {gerando ? "Gerando o simulado… (pode levar até 1 minuto)" : "Gerar simulado com IA"}
+        {gerando ? "Gerando o simulado… (pode levar alguns minutos, não feche a página)" : "Gerar simulado com IA"}
       </button>
     </form>
   );

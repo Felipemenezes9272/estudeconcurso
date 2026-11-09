@@ -87,7 +87,7 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
           </p>
           {erro && <p className="aviso erro" role="alert">{erro}</p>}
           <button className="primario" disabled={etapa === "lendo"}>
-            {etapa === "lendo" ? "Lendo o edital… (pode levar até 1 minuto)" : "Ler edital com IA"}
+            {etapa === "lendo" ? "Lendo o edital… (pode levar alguns minutos, não feche a página)" : "Ler edital com IA"}
           </button>
         </form>
       </section>
