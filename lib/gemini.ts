@@ -83,12 +83,20 @@ export async function extrairJsonDoPdf(
       },
     );
 
+  // 404 = modelo inexistente para esta chave; 429 = limite gratuito (que vale por modelo); 500/503 = sobrecarga.
+  // Nos dois casos passamos para o próximo modelo e, se todos falharem, repetimos uma vez.
+  const tentarOutro = (status: number) => [404, 429, 500, 503].includes(status);
+
   let resposta: Response | null = null;
   try {
-    for (const modelo of modelos) {
-      resposta = await chamar(modelo, true);
-      if (resposta.status === 400) resposta = await chamar(modelo, false);
-      if (resposta.status !== 404) break;
+    rodadas: for (let rodada = 0; rodada < 2; rodada++) {
+      for (const modelo of modelos) {
+        resposta = await chamar(modelo, true);
+        if (resposta.status === 400) resposta = await chamar(modelo, false);
+        if (!tentarOutro(resposta.status)) break rodadas;
+      }
+      if (prazo - Date.now() < 20_000) break;
+      await new Promise((r) => setTimeout(r, 2_000));
     }
   } catch {
     return falha(
@@ -98,6 +106,12 @@ export async function extrairJsonDoPdf(
   }
 
   if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
+  if (resposta.status === 500 || resposta.status === 503) {
+    return falha(
+      "O Gemini está sobrecarregado neste momento (erro do lado do Google). Aguarde alguns minutos e tente de novo.",
+      503,
+    );
+  }
   if (resposta.status === 404) {
     return falha(
       "Nenhum dos modelos do Gemini está disponível para esta chave. Defina GEMINI_MODEL na Vercel com um modelo atual (veja ai.google.dev/gemini-api/docs/models).",
