@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { editarSessao, excluirSessao } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import FormEstudo from "@/components/FormEstudo";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
 import { formatarData, formatarMinutos } from "@/lib/datas";
@@ -67,6 +69,43 @@ export default async function EstudoPage({
                 <span className="muted">
                   {formatarData(s.data)} · {formatarMinutos(s.minutos)}
                 </span>
+                <details className="editar">
+                  <summary>Editar ou excluir</summary>
+                  <form action={editarSessao} className="stack">
+                    <input type="hidden" name="sessao_id" value={s.id} />
+                    <div className="row">
+                      <label style={{ flex: 1, minWidth: 120 }}>
+                        Minutos
+                        <input name="minutos" type="number" min={1} defaultValue={s.minutos} required />
+                      </label>
+                      <label style={{ flex: 1, minWidth: 140 }}>
+                        Tipo
+                        <select name="tipo" defaultValue={s.tipo}>
+                          {Object.entries(ROTULO_TIPO).map(([valor, rotulo]) => (
+                            <option key={valor} value={valor}>
+                              {rotulo}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label style={{ flex: 1, minWidth: 140 }}>
+                        Data
+                        <input name="data" type="date" defaultValue={s.data} required />
+                      </label>
+                    </div>
+                    <div className="acoes">
+                      <button className="primario pequeno">Salvar alterações</button>
+                      <BotaoConfirmar
+                        className="perigo pequeno"
+                        formAction={excluirSessao}
+                        formNoValidate
+                        mensagem="Excluir esta sessão de estudo?"
+                      >
+                        Excluir sessão
+                      </BotaoConfirmar>
+                    </div>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>

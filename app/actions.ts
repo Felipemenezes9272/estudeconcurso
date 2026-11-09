@@ -378,3 +378,266 @@ export async function definirIncidencia(formData: FormData) {
 
   revalidatePath("/prioridades");
 }
+
+// ---------- Editar e excluir ----------
+// Excluir é "lógico": a linha ganha deleted_at e some das telas, mas não é apagada do banco.
+// Ao excluir um tópico (ou uma matéria/concurso inteiros), tudo que depende dele também é ocultado
+// (revisões, cartões, erros, sessões e questões), para as telas e os relatórios continuarem coerentes.
+
+type Cliente = Awaited<ReturnType<typeof createClient>>;
+
+const agora = () => new Date().toISOString();
+
+function dataOuHoje(formData: FormData): string {
+  const d = texto(formData, "data");
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : hoje();
+}
+
+function notaDe1a5(formData: FormData, campo: string, rotulo: string): number {
+  const n = inteiro(formData, campo);
+  if (!(n >= 1 && n <= 5)) falhar(`${rotulo} deve ir de 1 a 5.`);
+  return n;
+}
+
+async function ocultarDependentes(supabase: Cliente, topicoIds: string[]) {
+  const tabelas = ["revisoes", "flashcards", "erros", "sessoes_estudo", "registros_questoes"] as const;
+  for (let i = 0; i < topicoIds.length; i += 50) {
+    const lote = topicoIds.slice(i, i + 50);
+    for (const tabela of tabelas) {
+      const { error } = await supabase
+        .from(tabela)
+        .update({ deleted_at: agora() })
+        .in("topico_id", lote)
+        .is("deleted_at", null);
+      if (error) falhar(error.message);
+    }
+  }
+}
+
+async function idsDosTopicos(supabase: Cliente, materiaIds: string[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (let i = 0; i < materiaIds.length; i += 50) {
+    const { data, error } = await supabase
+      .from("topicos")
+      .select("id")
+      .in("materia_id", materiaIds.slice(i, i + 50))
+      .is("deleted_at", null);
+    if (error) falhar(error.message);
+    ids.push(...((data ?? []) as { id: string }[]).map((t) => t.id));
+  }
+  return ids;
+}
+
+async function ocultarMaterias(supabase: Cliente, materiaIds: string[]) {
+  if (materiaIds.length === 0) return;
+  await ocultarDependentes(supabase, await idsDosTopicos(supabase, materiaIds));
+  for (let i = 0; i < materiaIds.length; i += 50) {
+    const lote = materiaIds.slice(i, i + 50);
+    const { error: e1 } = await supabase
+      .from("topicos")
+      .update({ deleted_at: agora() })
+      .in("materia_id", lote)
+      .is("deleted_at", null);
+    if (e1) falhar(e1.message);
+    const { error: e2 } = await supabase
+      .from("materias")
+      .update({ deleted_at: agora() })
+      .in("id", lote)
+      .is("deleted_at", null);
+    if (e2) falhar(e2.message);
+  }
+}
+
+export async function editarConcurso(formData: FormData) {
+  const nome = texto(formData, "nome");
+  if (!nome) falhar("Informe o nome do concurso.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("concursos")
+    .update({
+      nome,
+      banca: texto(formData, "banca") || null,
+      cargo: texto(formData, "cargo") || null,
+      data_prova: texto(formData, "data_prova") || null,
+    })
+    .eq("id", texto(formData, "concurso_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirConcurso(formData: FormData) {
+  const id = texto(formData, "concurso_id");
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("materias")
+    .select("id")
+    .eq("concurso_id", id)
+    .is("deleted_at", null);
+  if (error) falhar(error.message);
+  await ocultarMaterias(supabase, ((data ?? []) as { id: string }[]).map((m) => m.id));
+
+  const { error: erroConcurso } = await supabase
+    .from("concursos")
+    .update({ deleted_at: agora() })
+    .eq("id", id);
+  if (erroConcurso) falhar(erroConcurso.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarMateria(formData: FormData) {
+  const nome = texto(formData, "nome");
+  if (!nome) falhar("Informe o nome da matéria.");
+  const peso = notaDe1a5(formData, "peso", "O peso");
+  const dificuldade = notaDe1a5(formData, "dificuldade", "A dificuldade");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("materias")
+    .update({ nome, peso, dificuldade })
+    .eq("id", texto(formData, "materia_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirMateria(formData: FormData) {
+  const supabase = await createClient();
+  await ocultarMaterias(supabase, [texto(formData, "materia_id")]);
+  revalidatePath("/", "layout");
+}
+
+export async function editarTopico(formData: FormData) {
+  const nome = texto(formData, "nome");
+  if (!nome) falhar("Informe o nome do tópico.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("topicos")
+    .update({ nome })
+    .eq("id", texto(formData, "topico_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirTopico(formData: FormData) {
+  const id = texto(formData, "topico_id");
+  const supabase = await createClient();
+
+  await ocultarDependentes(supabase, [id]);
+  const { error } = await supabase.from("topicos").update({ deleted_at: agora() }).eq("id", id);
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarSessao(formData: FormData) {
+  const minutos = inteiro(formData, "minutos");
+  const tipo = texto(formData, "tipo");
+  if (!(minutos > 0)) falhar("Informe o tempo estudado em minutos.");
+  if (!["teoria", "questoes", "revisao"].includes(tipo)) falhar("Tipo inválido.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sessoes_estudo")
+    .update({ minutos, tipo, data: dataOuHoje(formData) })
+    .eq("id", texto(formData, "sessao_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirSessao(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("sessoes_estudo")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "sessao_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarRegistroQuestoes(formData: FormData) {
+  const total = inteiro(formData, "total");
+  const acertos = inteiro(formData, "acertos");
+  if (!(total > 0)) falhar("Informe quantas questões você fez.");
+  if (!(acertos >= 0) || acertos > total) falhar("Acertos devem estar entre 0 e o total.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("registros_questoes")
+    .update({ total, acertos, data: dataOuHoje(formData) })
+    .eq("id", texto(formData, "registro_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirRegistroQuestoes(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("registros_questoes")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "registro_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirRevisao(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("revisoes")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "revisao_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarErro(formData: FormData) {
+  const enunciado = texto(formData, "enunciado");
+  const motivo = texto(formData, "motivo");
+  if (!enunciado) falhar("Descreva a questão.");
+  if (!["desatencao", "lacuna", "pegadinha"].includes(motivo)) falhar("Motivo inválido.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("erros")
+    .update({ enunciado, motivo, anotacao: texto(formData, "anotacao") || null })
+    .eq("id", texto(formData, "erro_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirErro(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("erros")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "erro_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarFlashcard(formData: FormData) {
+  const frente = texto(formData, "frente");
+  const verso = texto(formData, "verso");
+  if (!frente || !verso) falhar("Preencha a pergunta e a resposta.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("flashcards")
+    .update({ frente, verso })
+    .eq("id", texto(formData, "flashcard_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}

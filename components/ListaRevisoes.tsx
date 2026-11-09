@@ -1,4 +1,5 @@
-import { concluirRevisao } from "@/app/actions";
+import { concluirRevisao, excluirRevisao } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { formatarData } from "@/lib/datas";
 import type { RevisaoPendente } from "@/lib/consultas";
 
@@ -45,6 +46,15 @@ export default function ListaRevisoes({
                 </button>
               </form>
             )}
+            <form action={excluirRevisao} style={{ flexBasis: "100%" }}>
+              <input type="hidden" name="revisao_id" value={r.id} />
+              <BotaoConfirmar
+                className="link"
+                mensagem="Remover esta revisão da fila? O tópico continua no edital."
+              >
+                Remover da fila
+              </BotaoConfirmar>
+            </form>
           </li>
         );
       })}

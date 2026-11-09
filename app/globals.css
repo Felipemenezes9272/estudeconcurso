@@ -648,3 +648,37 @@ button.nota.facil {
   min-width: 36px;
   padding: 6px 0;
 }
+
+/* Editar e excluir */
+details.editar {
+  margin: 0;
+  flex-basis: 100%;
+}
+details.editar > summary {
+  display: inline-block;
+  padding: 4px 0;
+  color: var(--azul);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+details.editar[open] > summary {
+  margin-bottom: 8px;
+}
+details.editar > form {
+  margin-bottom: 8px;
+}
+button.perigo {
+  color: var(--vermelho);
+  border-color: var(--vermelho);
+  background: transparent;
+}
+button.perigo:hover:not(:disabled) {
+  background: var(--vermelho-suave);
+  border-color: var(--vermelho);
+}
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

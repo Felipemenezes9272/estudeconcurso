@@ -4,7 +4,14 @@ import {
   criarConcurso,
   criarMateria,
   criarTopicos,
+  editarConcurso,
+  editarMateria,
+  editarTopico,
+  excluirConcurso,
+  excluirMateria,
+  excluirTopico,
 } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { formatarData } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,6 +97,42 @@ export default async function EditalPage() {
               {feitos} de {topicos.length} tópicos concluídos ({pct}%)
             </p>
 
+            <details className="editar">
+              <summary>Editar ou excluir concurso</summary>
+              <form action={editarConcurso} className="stack">
+                <input type="hidden" name="concurso_id" value={concurso.id} />
+                <label>
+                  Nome
+                  <input name="nome" defaultValue={concurso.nome} required />
+                </label>
+                <div className="row">
+                  <label style={{ flex: 1, minWidth: 140 }}>
+                    Banca
+                    <input name="banca" defaultValue={concurso.banca ?? ""} />
+                  </label>
+                  <label style={{ flex: 1, minWidth: 140 }}>
+                    Cargo
+                    <input name="cargo" defaultValue={concurso.cargo ?? ""} />
+                  </label>
+                  <label style={{ flex: 1, minWidth: 140 }}>
+                    Data da prova
+                    <input name="data_prova" type="date" defaultValue={concurso.data_prova ?? ""} />
+                  </label>
+                </div>
+                <div className="acoes">
+                  <button className="primario pequeno">Salvar alterações</button>
+                  <BotaoConfirmar
+                    className="perigo pequeno"
+                    formAction={excluirConcurso}
+                    formNoValidate
+                    mensagem={`Excluir o concurso "${concurso.nome}" com todas as matérias, tópicos, revisões, cartões, erros e registros de estudo dele?`}
+                  >
+                    Excluir concurso
+                  </BotaoConfirmar>
+                </div>
+              </form>
+            </details>
+
             {concurso.materias.map((materia) => {
               const feitosMateria = materia.topicos.filter((t) => t.status === "concluido").length;
               return (
@@ -101,6 +144,44 @@ export default async function EditalPage() {
                       {materia.dificuldade}
                     </span>
                   </summary>
+
+                  <details className="editar" style={{ marginTop: 8 }}>
+                    <summary>Editar ou excluir matéria</summary>
+                    <form action={editarMateria} className="stack">
+                      <input type="hidden" name="materia_id" value={materia.id} />
+                      <div className="row">
+                        <label style={{ flex: 3, minWidth: 160 }}>
+                          Nome
+                          <input name="nome" defaultValue={materia.nome} required />
+                        </label>
+                        <label style={{ flex: 1 }}>
+                          Peso (1-5)
+                          <input name="peso" type="number" min={1} max={5} defaultValue={materia.peso} />
+                        </label>
+                        <label style={{ flex: 1 }}>
+                          Dificuldade (1-5)
+                          <input
+                            name="dificuldade"
+                            type="number"
+                            min={1}
+                            max={5}
+                            defaultValue={materia.dificuldade}
+                          />
+                        </label>
+                      </div>
+                      <div className="acoes">
+                        <button className="primario pequeno">Salvar alterações</button>
+                        <BotaoConfirmar
+                          className="perigo pequeno"
+                          formAction={excluirMateria}
+                    formNoValidate
+                          mensagem={`Excluir a matéria "${materia.nome}" com todos os tópicos, revisões, cartões, erros e registros de estudo dela?`}
+                        >
+                          Excluir matéria
+                        </BotaoConfirmar>
+                      </div>
+                    </form>
+                  </details>
 
                   <ul className="lista">
                     {materia.topicos.map((t) => (
@@ -117,6 +198,28 @@ export default async function EditalPage() {
                             {ROTULO_STATUS[t.status]}
                           </button>
                         </form>
+                        <details className="editar">
+                          <summary>Renomear ou excluir</summary>
+                          <form action={editarTopico} className="row">
+                            <input type="hidden" name="topico_id" value={t.id} />
+                            <input
+                              name="nome"
+                              defaultValue={t.nome}
+                              required
+                              aria-label="Nome do tópico"
+                              style={{ flex: 1, minWidth: 180 }}
+                            />
+                            <button className="primario pequeno">Salvar</button>
+                            <BotaoConfirmar
+                              className="perigo pequeno"
+                              formAction={excluirTopico}
+                              formNoValidate
+                              mensagem={`Excluir o tópico "${t.nome}" com revisões, cartões, erros e registros de estudo dele?`}
+                            >
+                              Excluir
+                            </BotaoConfirmar>
+                          </form>
+                        </details>
                       </li>
                     ))}
                   </ul>

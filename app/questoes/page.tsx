@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { registrarQuestoes } from "@/app/actions";
+import { editarRegistroQuestoes, excluirRegistroQuestoes, registrarQuestoes } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
 import { formatarData } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
@@ -83,6 +84,37 @@ export default async function QuestoesPage({
                 <span className="muted">
                   {formatarData(r.data)} · {r.acertos}/{r.total} ({Math.round((r.acertos / r.total) * 100)}%)
                 </span>
+                <details className="editar">
+                  <summary>Editar ou excluir</summary>
+                  <form action={editarRegistroQuestoes} className="stack">
+                    <input type="hidden" name="registro_id" value={r.id} />
+                    <div className="row">
+                      <label style={{ flex: 1, minWidth: 110 }}>
+                        Questões feitas
+                        <input name="total" type="number" min={1} defaultValue={r.total} required />
+                      </label>
+                      <label style={{ flex: 1, minWidth: 110 }}>
+                        Acertos
+                        <input name="acertos" type="number" min={0} defaultValue={r.acertos} required />
+                      </label>
+                      <label style={{ flex: 1, minWidth: 140 }}>
+                        Data
+                        <input name="data" type="date" defaultValue={r.data} required />
+                      </label>
+                    </div>
+                    <div className="acoes">
+                      <button className="primario pequeno">Salvar alterações</button>
+                      <BotaoConfirmar
+                        className="perigo pequeno"
+                        formAction={excluirRegistroQuestoes}
+                        formNoValidate
+                        mensagem="Excluir este registro de questões?"
+                      >
+                        Excluir registro
+                      </BotaoConfirmar>
+                    </div>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>

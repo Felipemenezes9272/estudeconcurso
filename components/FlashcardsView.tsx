@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { criarFlashcard, excluirFlashcard } from "@/app/actions";
+import { criarFlashcard, editarFlashcard, excluirFlashcard } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import EstudoFlashcard from "@/components/EstudoFlashcard";
 import type { TopicoOpcao } from "@/lib/consultas";
 import { formatarData } from "@/lib/datas";
@@ -115,10 +116,31 @@ export default function FlashcardsView({
                       </span>
                     </div>
                   </div>
-                  <form action={excluirFlashcard}>
-                    <input type="hidden" name="flashcard_id" value={c.id} />
-                    <button className="pequeno">Excluir</button>
-                  </form>
+                  <details className="editar">
+                    <summary>Editar ou excluir</summary>
+                    <form action={editarFlashcard} className="stack">
+                      <input type="hidden" name="flashcard_id" value={c.id} />
+                      <label>
+                        Pergunta
+                        <textarea name="frente" rows={2} defaultValue={c.frente} required />
+                      </label>
+                      <label>
+                        Resposta
+                        <textarea name="verso" rows={3} defaultValue={c.verso} required />
+                      </label>
+                      <div className="acoes">
+                        <button className="primario pequeno">Salvar alterações</button>
+                        <BotaoConfirmar
+                          className="perigo pequeno"
+                          formAction={excluirFlashcard}
+                          formNoValidate
+                          mensagem="Excluir este cartão?"
+                        >
+                          Excluir cartão
+                        </BotaoConfirmar>
+                      </div>
+                    </form>
+                  </details>
                 </li>
               ))}
             </ul>

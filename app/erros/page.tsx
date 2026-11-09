@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { alterarStatusErro, registrarErro } from "@/app/actions";
+import { alterarStatusErro, editarErro, excluirErro, registrarErro } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
 import { formatarData } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
@@ -217,6 +218,41 @@ function ItemErro({ erro }: { erro: Erro }) {
           </button>
         )}
       </form>
+      <details className="editar">
+        <summary>Editar ou excluir</summary>
+        <form action={editarErro} className="stack">
+          <input type="hidden" name="erro_id" value={erro.id} />
+          <label>
+            Questão
+            <input name="enunciado" defaultValue={erro.enunciado} required />
+          </label>
+          <label>
+            Por que errei?
+            <select name="motivo" defaultValue={erro.motivo} required>
+              {(Object.keys(MOTIVOS) as (keyof typeof MOTIVOS)[]).map((m) => (
+                <option key={m} value={m}>
+                  {MOTIVOS[m].rotulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Anotação
+            <textarea name="anotacao" rows={3} defaultValue={erro.anotacao ?? ""} />
+          </label>
+          <div className="acoes">
+            <button className="primario pequeno">Salvar alterações</button>
+            <BotaoConfirmar
+              className="perigo pequeno"
+              formAction={excluirErro}
+              formNoValidate
+              mensagem="Excluir este erro do caderno?"
+            >
+              Excluir erro
+            </BotaoConfirmar>
+          </div>
+        </form>
+      </details>
     </li>
   );
 }
