@@ -43,35 +43,54 @@ export async function extrairJsonDoPdf(
     );
   }
 
-  const modelo = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  let resposta: Response;
-  try {
-    resposta = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
+  // Modelos em ordem de preferência. Se um não existir para esta chave (404), tenta o próximo.
+  const modelos = [
+    process.env.GEMINI_MODEL,
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+  ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
+
+  const corpo = JSON.stringify({
+    contents: [
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { inline_data: { mime_type: "application/pdf", data: bytes.toString("base64") } },
-                { text: prompt },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 32768,
-            responseMimeType: "application/json",
-            responseSchema: esquema,
-          },
-        }),
-        signal: AbortSignal.timeout(55_000),
+        parts: [
+          { inline_data: { mime_type: "application/pdf", data: bytes.toString("base64") } },
+          { text: prompt },
+        ],
       },
+    ],
+    generationConfig: {
+      maxOutputTokens: 32768,
+      responseMimeType: "application/json",
+      responseSchema: esquema,
+    },
+  });
+
+  let resposta: Response | null = null;
+  for (const modelo of modelos) {
+    try {
+      resposta = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+          body: corpo,
+          signal: AbortSignal.timeout(55_000),
+        },
+      );
+    } catch {
+      return falha("O Gemini demorou demais ou não respondeu. Tente de novo em instantes.", 504);
+    }
+    if (resposta.status !== 404) break;
+  }
+
+  if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
+  if (resposta.status === 404) {
+    return falha(
+      "Nenhum dos modelos do Gemini está disponível para esta chave. Defina GEMINI_MODEL na Vercel com um modelo atual (veja ai.google.dev/gemini-api/docs/models).",
+      502,
     );
-  } catch {
-    return falha("O Gemini demorou demais ou não respondeu. Tente de novo em instantes.", 504);
   }
 
   if (!resposta.ok) {

@@ -45,7 +45,7 @@ Em **Edital → Importar edital em PDF com IA** (`/edital/importar`): envie o PD
 só as páginas do conteúdo programático), o Gemini extrai concurso, banca, cargo, data da prova, matérias
 (com peso estimado) e tópicos. Você revisa e edita tudo antes de salvar; nada é gravado antes disso.
 Requer a variável `GEMINI_API_KEY` (chave gratuita em aistudio.google.com/apikey) na Vercel, sem o prefixo
-`NEXT_PUBLIC_`. Opcional: `GEMINI_MODEL` para trocar o modelo (padrão `gemini-2.5-flash`).
+`NEXT_PUBLIC_`. Opcional: `GEMINI_MODEL` para trocar o modelo (padrão `gemini-3.8-flash`, com reserva automática em outros modelos atuais).
 
 ## Fase 4: Simulados com IA
 
