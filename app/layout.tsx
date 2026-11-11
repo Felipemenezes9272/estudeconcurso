@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
+import SubAbas from "@/components/SubAbas";
 import { carregarAvisos } from "@/lib/avisos-consulta";
 import { hoje } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
@@ -45,7 +46,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {user && <Nav avisos={avisosNovos} />}
-        <div className="container">{children}</div>
+        <div className="container">
+          {user && <SubAbas />}
+          {children}
+        </div>
       </body>
     </html>
   );

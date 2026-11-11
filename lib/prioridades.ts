@@ -28,6 +28,9 @@ export type ItemPrioridade = {
   /** Percentual de acerto (0-100), ou null se desconhecido. */
   taxa: number | null;
   motivo: string;
+  status: string;
+  /** Merece atenção agora (não está concluído com bom desempenho). */
+  prioritario: boolean;
 };
 
 /**
@@ -46,25 +49,42 @@ function motivoDe(status: string, taxa: number | null): string {
   if (taxa !== null && taxa < ACERTO_ALVO) {
     return status === "concluido" ? `Concluído, mas só ${taxa}% de acerto` : `Acerto baixo (${taxa}%)`;
   }
+  if (status === "concluido") return "Concluído";
   if (status === "estudando") return "Em andamento";
   return "Ainda não iniciado";
+}
+
+/** Pontuação e situação de um tópico, com a informação de que ele merece atenção ou não. */
+export function avaliar(t: TopicoEntrada): ItemPrioridade {
+  const { score, taxa } = pontuar(t);
+  return {
+    id: t.id,
+    nome: t.nome,
+    materia: t.materia,
+    incidencia: t.incidencia,
+    peso: t.peso,
+    score,
+    taxa,
+    motivo: motivoDe(t.status, taxa),
+    status: t.status,
+    prioritario: t.status !== "concluido" || (taxa !== null && taxa < ACERTO_ALVO),
+  };
+}
+
+const porScore = (a: ItemPrioridade, b: ItemPrioridade) =>
+  b.score - a.score || a.nome.localeCompare(b.nome, "pt-BR");
+
+/** Todos os tópicos avaliados, os que merecem atenção primeiro (do mais ao menos prioritário). */
+export function ordenarPorPrioridade(topicos: TopicoEntrada[]): ItemPrioridade[] {
+  const itens = topicos.map(avaliar);
+  return [...itens.filter((i) => i.prioritario).sort(porScore), ...itens.filter((i) => !i.prioritario).sort(porScore)];
 }
 
 /** Tópicos que merecem atenção, do mais prioritário ao menos. */
 export function ranquear(topicos: TopicoEntrada[], limite = 10): ItemPrioridade[] {
   return topicos
-    .map((t) => ({ t, ...pontuar(t) }))
-    .filter(({ t, taxa }) => t.status !== "concluido" || (taxa !== null && taxa < ACERTO_ALVO))
-    .map(({ t, score, taxa }) => ({
-      id: t.id,
-      nome: t.nome,
-      materia: t.materia,
-      incidencia: t.incidencia,
-      peso: t.peso,
-      score,
-      taxa,
-      motivo: motivoDe(t.status, taxa),
-    }))
-    .sort((a, b) => b.score - a.score || a.nome.localeCompare(b.nome, "pt-BR"))
+    .map(avaliar)
+    .filter((i) => i.prioritario)
+    .sort(porScore)
     .slice(0, limite);
 }

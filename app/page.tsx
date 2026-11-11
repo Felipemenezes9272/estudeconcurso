@@ -2,6 +2,7 @@ import Link from "next/link";
 import ListaRevisoes from "@/components/ListaRevisoes";
 import { listarRevisoesPendentes } from "@/lib/consultas";
 import { distanciaTexto, ROTULO_EVENTO, type TipoEvento } from "@/lib/calendario";
+import Atalhos from "@/components/Atalhos";
 import { ApostilaArte } from "@/components/Ilustracoes";
 import {
   dataPorExtenso,
@@ -167,7 +168,9 @@ export default async function PainelPage() {
           <p style={{ margin: "0 0 12px" }}>
             Você tem <strong>{cartoesHoje}</strong> {cartoesHoje === 1 ? "cartão" : "cartões"} para estudar hoje.
           </p>
-          <Link href="/flashcards">Estudar agora →</Link>
+          <Link href="/flashcards" className="botao primario">
+            Estudar agora
+          </Link>
         </section>
       )}
 
@@ -187,15 +190,13 @@ export default async function PainelPage() {
               </li>
             ))}
           </ul>
-          <Link href="/calendario">Abrir o calendário →</Link>
+          <Link href="/calendario" className="botao">
+            Abrir o calendário
+          </Link>
         </section>
       )}
 
-      <p className="row" style={{ justifyContent: "center", gap: 20 }}>
-        <Link href="/simulados">Simulados com IA →</Link>
-        <Link href="/prioridades">O que estudar primeiro →</Link>
-        <Link href="/relatorios">Relatórios de evolução →</Link>
-      </p>
+      <Atalhos />
 
       {topicos === 0 && (
         <section className="card">
@@ -204,7 +205,9 @@ export default async function PainelPage() {
             Cadastre o concurso, as matérias e os tópicos para liberar o registro de estudo e as
             revisões.
           </p>
-          <Link href="/edital">Ir para o edital →</Link>
+          <Link href="/edital" className="botao primario">
+            Ir para o edital
+          </Link>
         </section>
       )}
     </>

@@ -35,9 +35,6 @@ export default async function QuestoesPage({
   return (
     <>
       <h1>Registrar questões</h1>
-      <p className="subtitulo">
-        <Link href="/simulados">Gerar simulado a partir de um PDF →</Link>
-      </p>
       {ok && <p className="aviso ok">Questões registradas.</p>}
 
       <section className="card">

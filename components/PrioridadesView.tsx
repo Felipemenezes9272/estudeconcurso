@@ -2,10 +2,17 @@ import Link from "next/link";
 import { definirIncidencia } from "@/app/actions";
 import type { ItemPrioridade } from "@/lib/prioridades";
 
-export type MateriaEdicao = {
+export type ConcursoAba = { id: string; nome: string; pendentes: number };
+
+export type MateriaGrupo = {
+  id: string;
   nome: string;
   peso: number;
-  topicos: { id: string; nome: string; incidencia: number }[];
+  total: number;
+  concluidos: number;
+  pendentes: number;
+  maiorScore: number;
+  itens: ItemPrioridade[];
 };
 
 const ROTULO_INCIDENCIA: Record<number, string> = {
@@ -16,29 +23,73 @@ const ROTULO_INCIDENCIA: Record<number, string> = {
   5: "sempre",
 };
 
+const pontos = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+function classeDoMotivo(i: ItemPrioridade) {
+  if (i.taxa !== null && i.taxa < 70) return "atrasada";
+  if (i.status === "concluido") return "concluido";
+  if (i.status === "estudando") return "estudando";
+  return "";
+}
+
 export default function PrioridadesView({
+  concursos,
+  selecionado,
   ranking,
   materias,
 }: {
+  concursos: ConcursoAba[];
+  selecionado?: string;
   ranking: ItemPrioridade[];
-  materias: MateriaEdicao[];
+  materias: MateriaGrupo[];
 }) {
-  const maior = Math.max(...ranking.map((i) => i.score), 1);
-  const total = materias.reduce((soma, m) => soma + m.topicos.length, 0);
+  if (concursos.length === 0) {
+    return (
+      <>
+        <h1>O que estudar primeiro</h1>
+        <section className="card">
+          <p className="vazio">Cadastre um concurso e os tópicos para ver o que estudar primeiro.</p>
+          <p style={{ marginBottom: 0 }}>
+            <Link href="/edital" className="botao primario">
+              Ir para o edital
+            </Link>
+          </p>
+        </section>
+      </>
+    );
+  }
+
+  const maior = Math.max(...materias.flatMap((m) => m.itens.map((i) => i.score)), 1);
+  const total = materias.reduce((soma, m) => soma + m.total, 0);
+  const nomeDoEdital = concursos.find((c) => c.id === selecionado)?.nome ?? "";
 
   return (
     <>
-      <h1>Prioridades</h1>
-      <p className="subtitulo">O que estudar primeiro, segundo o que cai na prova e onde você erra</p>
+      <h1>O que estudar primeiro</h1>
+      <p className="subtitulo">Por edital e por matéria, segundo o que cai na prova e onde você erra.</p>
+
+      <nav className="subabas" aria-label="Editais">
+        {concursos.map((c) => (
+          <Link
+            key={c.id}
+            href={`/prioridades?concurso=${c.id}`}
+            className={c.id === selecionado ? "ativa" : undefined}
+            aria-current={c.id === selecionado ? "page" : undefined}
+          >
+            {c.nome}
+            {c.pendentes > 0 && <span className="contagem">{c.pendentes}</span>}
+          </Link>
+        ))}
+      </nav>
 
       <section className="card">
-        <h2>Estude primeiro</h2>
+        <h2>Estude primeiro em {nomeDoEdital}</h2>
         {total === 0 ? (
           <p className="vazio">
-            Cadastre os tópicos no <Link href="/edital">edital</Link> para ver as prioridades.
+            Este edital ainda não tem tópicos. Cadastre-os em <Link href="/edital">Meu edital</Link>.
           </p>
         ) : ranking.length === 0 ? (
-          <p className="vazio">Tudo concluído e com bom desempenho. Bom trabalho!</p>
+          <p className="vazio">Tudo concluído e com bom desempenho neste edital. Bom trabalho!</p>
         ) : (
           <ol className="ranking">
             {ranking.map((i, pos) => (
@@ -48,16 +99,14 @@ export default function PrioridadesView({
                   <strong>{i.nome}</strong>
                   <div className="muted" style={{ fontSize: "0.9rem" }}>
                     {i.materia} · cai {ROTULO_INCIDENCIA[i.incidencia]} · peso {i.peso} ·{" "}
-                    <span className={`tag ${i.taxa !== null && i.taxa < 70 ? "atrasada" : i.motivo === "Em andamento" ? "estudando" : ""}`}>
-                      {i.motivo}
-                    </span>
+                    <span className={`tag ${classeDoMotivo(i)}`}>{i.motivo}</span>
                   </div>
                   <div className="barra" style={{ marginTop: 6 }}>
                     <span style={{ width: `${Math.round((i.score / maior) * 100)}%` }} />
                   </div>
                 </div>
                 <span className="pontos" title="incidência × peso × desempenho">
-                  {i.score.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                  {pontos(i.score)}
                 </span>
               </li>
             ))}
@@ -71,30 +120,42 @@ export default function PrioridadesView({
 
       {total > 0 && (
         <section className="card">
-          <h2>Quanto cada tópico cai na prova</h2>
+          <h2>Por matéria</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            Toque em 1 (raramente) a 5 (sempre). Se tiver acesso a provas anteriores da banca, use-as para
-            calibrar.
+            As matérias com os tópicos mais urgentes vêm primeiro. Em cada tópico, toque de 1 (raramente) a 5
+            (sempre) para dizer quanto ele cai na prova.
           </p>
-          {materias.map((m) => (
-            <details key={m.nome}>
+          {materias.map((m, idx) => (
+            <details key={m.id} open={idx === 0}>
               <summary>
-                {m.nome} <span className="muted">· {m.topicos.length} tópico(s) · peso {m.peso}</span>
+                {m.nome}{" "}
+                <span className="muted">
+                  · peso {m.peso} · {m.concluidos}/{m.total} concluídos
+                  {m.pendentes > 0 ? ` · ${m.pendentes} para estudar` : " · em dia"}
+                </span>
               </summary>
               <ul className="lista">
-                {m.topicos.map((t) => (
-                  <li key={t.id}>
-                    <span style={{ flex: 1, minWidth: 160 }}>{t.nome}</span>
-                    <form action={definirIncidencia} className="escala" aria-label={`Incidência de ${t.nome}`}>
-                      <input type="hidden" name="topico_id" value={t.id} />
+                {m.itens.map((i) => (
+                  <li key={i.id} style={i.prioritario ? undefined : { opacity: 0.75 }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <strong>{i.nome}</strong>
+                      <div className="muted" style={{ fontSize: "0.9rem" }}>
+                        <span className={`tag ${classeDoMotivo(i)}`}>{i.motivo}</span> · {pontos(i.score)} pontos
+                      </div>
+                      <div className="barra" style={{ marginTop: 6 }}>
+                        <span style={{ width: `${Math.round((i.score / maior) * 100)}%` }} />
+                      </div>
+                    </div>
+                    <form action={definirIncidencia} className="escala" aria-label={`Quanto ${i.nome} cai na prova`}>
+                      <input type="hidden" name="topico_id" value={i.id} />
                       {[1, 2, 3, 4, 5].map((n) => (
                         <button
                           key={n}
                           name="incidencia"
                           value={n}
-                          className={`pequeno${n === t.incidencia ? " primario" : ""}`}
-                          aria-pressed={n === t.incidencia}
-                          title={ROTULO_INCIDENCIA[n]}
+                          className={`pequeno${n === i.incidencia ? " primario" : ""}`}
+                          aria-pressed={n === i.incidencia}
+                          title={`Cai ${ROTULO_INCIDENCIA[n]}`}
                         >
                           {n}
                         </button>

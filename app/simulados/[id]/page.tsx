@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { excluirSimulado, finalizarSimulado, refazerSimulado } from "@/app/actions";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
@@ -46,9 +45,6 @@ export default async function SimuladoPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <h1>{simulado.titulo}</h1>
-      <p className="subtitulo">
-        <Link href="/simulados">← Todos os simulados</Link>
-      </p>
 
       {corrigido && (
         <section className="card">
