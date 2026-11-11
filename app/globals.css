@@ -1454,3 +1454,38 @@ a.atalho:hover {
   color: var(--suave);
   font-size: 0.88rem;
 }
+
+/* ---- Central de estudo ---- */
+.plano {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.plano-dia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--borda);
+  border-radius: 10px;
+  background: var(--campo);
+  font-size: 0.9rem;
+}
+.plano-dia.hoje {
+  border-color: var(--azul);
+  background: var(--azul-suave);
+}
+.plano-dia ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.plano-dia a {
+  color: var(--texto);
+  text-decoration: none;
+}
+.plano-dia a:hover {
+  text-decoration: underline;
+}

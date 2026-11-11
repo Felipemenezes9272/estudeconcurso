@@ -10,7 +10,17 @@ function mmss(segundos: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
+const FOCO_POMODORO = 25 * 60;
+
+export default function FormEstudo({
+  topicos,
+  topicoInicial,
+}: {
+  topicos: TopicoOpcao[];
+  topicoInicial?: string;
+}) {
+  const [pomodoro, setPomodoro] = useState(false);
+  const [pausa, setPausa] = useState(false);
   const [minutos, setMinutos] = useState("");
   const [rodando, setRodando] = useState(false);
   const [segundos, setSegundos] = useState(0);
@@ -24,7 +34,18 @@ export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
     return () => clearInterval(id);
   }, [rodando]);
 
+  // No modo pomodoro, o foco termina sozinho aos 25 minutos e sugere 5 de pausa.
+  useEffect(() => {
+    if (pomodoro && rodando && segundos >= FOCO_POMODORO) {
+      setRodando(false);
+      setSegundos(FOCO_POMODORO);
+      setMinutos("25");
+      setPausa(true);
+    }
+  }, [pomodoro, rodando, segundos]);
+
   function alternar() {
+    setPausa(false);
     if (!rodando) {
       inicio.current = Date.now() - segundos * 1000;
       setRodando(true);
@@ -38,6 +59,7 @@ export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
   function zerar() {
     setRodando(false);
     setSegundos(0);
+    setPausa(false);
     inicio.current = null;
   }
 
@@ -45,7 +67,7 @@ export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
     <form action={registrarSessao} className="stack">
       <label>
         Tópico
-        <select name="topico_id" required defaultValue="">
+        <select name="topico_id" required defaultValue={topicoInicial ?? ""}>
           <option value="" disabled>
             Escolha o tópico…
           </option>
@@ -58,7 +80,23 @@ export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
       </label>
 
       <div className="row">
-        <span className="cronometro">{mmss(segundos)}</span>
+        <label style={{ flexDirection: "row", alignItems: "center", gap: 8, display: "flex" }}>
+          <input
+            type="checkbox"
+            checked={pomodoro}
+            onChange={(e) => {
+              setPomodoro(e.target.checked);
+              setPausa(false);
+            }}
+            disabled={rodando}
+          />
+          Pomodoro (25 min de foco)
+        </label>
+      </div>
+      <div className="row">
+        <span className="cronometro">
+          {pomodoro && !pausa ? mmss(Math.max(0, FOCO_POMODORO - segundos)) : mmss(segundos)}
+        </span>
         <button type="button" onClick={alternar}>
           {rodando ? "Parar" : segundos > 0 ? "Continuar" : "Iniciar"}
         </button>
@@ -66,6 +104,12 @@ export default function FormEstudo({ topicos }: { topicos: TopicoOpcao[] }) {
           Zerar
         </button>
       </div>
+
+      {pausa && (
+        <p className="aviso ok" role="status">
+          Foco concluído! Registre a sessão e faça uma pausa de 5 minutos.
+        </p>
+      )}
 
       <div className="row">
         <label style={{ flex: 1 }}>

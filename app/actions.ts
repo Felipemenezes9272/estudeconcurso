@@ -845,3 +845,37 @@ export async function marcarTodosAvisosLidos(formData: FormData) {
 
   revalidatePath("/", "layout");
 }
+
+// ---------- Central de estudo ----------
+
+export async function definirMeta(formData: FormData) {
+  const minutos = inteiro(formData, "minutos_dia");
+  if (!(minutos >= 10 && minutos <= 1440)) falhar("A meta deve ficar entre 10 e 1440 minutos.");
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) falhar("Faça login para continuar.");
+
+  const { error } = await supabase
+    .from("metas_estudo")
+    .upsert({ user_id: auth.user.id, minutos_dia: minutos, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (error) falhar(error.message);
+
+  revalidatePath("/estudo");
+  redirect("/estudo?ok=meta");
+}
+
+export async function salvarAnotacao(formData: FormData) {
+  const topicoId = texto(formData, "topico_id");
+  if (!topicoId) falhar("Tópico não informado.");
+  const conteudo = String(formData.get("texto") ?? "").slice(0, 10000);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("anotacoes_topico")
+    .upsert({ topico_id: topicoId, texto: conteudo, updated_at: new Date().toISOString() }, { onConflict: "topico_id" });
+  if (error) falhar(error.message);
+
+  revalidatePath("/estudo/topico");
+  redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}&ok=1`);
+}

@@ -35,7 +35,8 @@ export const SECOES: Secao[] = [
     rotulo: "Estudo",
     prefixos: ["/estudo", "/prioridades", "/relatorios"],
     sub: [
-      { href: "/estudo", rotulo: "Registrar estudo" },
+      { href: "/estudo", rotulo: "Estudo de hoje", exato: true },
+      { href: "/estudo/topico", rotulo: "Por tópico" },
       { href: "/prioridades", rotulo: "O que estudar primeiro" },
       { href: "/relatorios", rotulo: "Relatórios de evolução" },
     ],
