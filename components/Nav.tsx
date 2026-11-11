@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { sair } from "@/app/actions";
+import { Logo } from "@/components/Ilustracoes";
 
 function Icone({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +90,10 @@ export default function Nav({ avisos = 0 }: { avisos?: number }) {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <span className="marca">Estudos</span>
+        <span className="marca">
+          <Logo />
+          Estudos
+        </span>
         <nav className="tabs" aria-label="Principal">
           {links.map((l) => {
             const ativo = l.href === "/" ? caminho === "/" : caminho.startsWith(l.href);

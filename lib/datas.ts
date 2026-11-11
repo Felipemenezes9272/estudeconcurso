@@ -34,3 +34,18 @@ export function dataPorExtenso(): string {
     month: "long",
   });
 }
+
+/** "Bom dia", "Boa tarde" ou "Boa noite", pela hora em Brasília. */
+export function saudacao(): string {
+  const hora = Number(
+    new Date().toLocaleString("pt-BR", { timeZone: FUSO, hour: "numeric", hour12: false }),
+  ) % 24;
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+/** "seg", "ter"... de uma data AAAA-MM-DD. */
+export function diaDaSemanaCurto(data: string): string {
+  return new Date(`${data}T12:00:00Z`).toLocaleDateString("pt-BR", { timeZone: "UTC", weekday: "short" }).replace(".", "");
+}

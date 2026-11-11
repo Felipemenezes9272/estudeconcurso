@@ -186,7 +186,7 @@ export default async function EditalPage() {
                   <ul className="lista">
                     {materia.topicos.map((t) => (
                       <li key={t.id}>
-                        <span>{t.nome}</span>
+                        <span className={t.status === "concluido" ? "feito" : undefined}>{t.nome}</span>
                         <form action={alterarStatusTopico} className="row">
                           <input type="hidden" name="topico_id" value={t.id} />
                           <button

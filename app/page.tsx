@@ -2,7 +2,16 @@ import Link from "next/link";
 import ListaRevisoes from "@/components/ListaRevisoes";
 import { listarRevisoesPendentes } from "@/lib/consultas";
 import { distanciaTexto, ROTULO_EVENTO, type TipoEvento } from "@/lib/calendario";
-import { dataPorExtenso, formatarData, formatarMinutos, hoje, somarDias } from "@/lib/datas";
+import { ApostilaArte } from "@/components/Ilustracoes";
+import {
+  dataPorExtenso,
+  diaDaSemanaCurto,
+  formatarData,
+  formatarMinutos,
+  hoje,
+  saudacao,
+  somarDias,
+} from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PainelPage() {
@@ -13,7 +22,7 @@ export default async function PainelPage() {
     listarRevisoesPendentes(supabase, dataHoje),
     supabase
       .from("sessoes_estudo")
-      .select("minutos")
+      .select("data, minutos")
       .is("deleted_at", null)
       .gte("data", somarDias(dataHoje, -6)),
     supabase
@@ -47,10 +56,16 @@ export default async function PainelPage() {
   // Se a tabela ainda não existir (SQL da fase 2 não rodado), a consulta devolve erro e contamos 0.
   const cartoesHoje = cartoes.error ? 0 : (cartoes.count ?? 0);
 
-  const minutosSemana = ((sessoes.data ?? []) as { minutos: number }[]).reduce(
-    (soma, s) => soma + s.minutos,
-    0,
-  );
+  const sessoesSemana = (sessoes.data ?? []) as { data: string; minutos: number }[];
+  const minutosSemana = sessoesSemana.reduce((soma, s) => soma + s.minutos, 0);
+
+  // Os últimos 7 dias, do mais antigo para hoje: alimenta o "gabarito da semana".
+  const semana = Array.from({ length: 7 }, (_, i) => {
+    const data = somarDias(dataHoje, i - 6);
+    const minutos = sessoesSemana.filter((s) => s.data === data).reduce((soma, s) => soma + s.minutos, 0);
+    return { data, minutos, rotulo: diaDaSemanaCurto(data) };
+  });
+  const diasEstudados = semana.filter((d) => d.minutos > 0).length;
 
   const qs = (questoes.data ?? []) as { total: number; acertos: number }[];
   const totalQuestoes = qs.reduce((soma, q) => soma + q.total, 0);
@@ -63,8 +78,53 @@ export default async function PainelPage() {
 
   return (
     <>
-      <h1>Painel</h1>
-      <p className="subtitulo">{dataPorExtenso()}</p>
+      <section className="hero" aria-label="Resumo do dia">
+        <div>
+          <h1>{saudacao()}!</h1>
+          <p className="subtitulo">{dataPorExtenso()}</p>
+          <p className="hero-resumo">
+            {revisoes.length + cartoesHoje === 0
+              ? "Nada vencendo hoje. Boa hora para avançar em um tópico novo."
+              : `Hoje você tem ${revisoes.length} ${revisoes.length === 1 ? "revisão" : "revisões"} e ${cartoesHoje} ${cartoesHoje === 1 ? "cartão" : "cartões"} para fazer.`}
+          </p>
+          <div className="hero-acoes">
+            {revisoes.length > 0 && (
+              <Link href="/revisoes" className="destaque">
+                Fazer revisões
+              </Link>
+            )}
+            {cartoesHoje > 0 && (
+              <Link href="/flashcards" className={revisoes.length > 0 ? undefined : "destaque"}>
+                Estudar cartões
+              </Link>
+            )}
+            <Link href="/estudo" className={revisoes.length + cartoesHoje === 0 ? "destaque" : undefined}>
+              Registrar estudo
+            </Link>
+          </div>
+        </div>
+        <ApostilaArte className="hero-arte" />
+
+        <ol className="gabarito" aria-label="Estudo nos últimos 7 dias">
+          <li className="gabarito-titulo" style={{ display: "block", flexBasis: "100%" }}>
+            {diasEstudados === 0
+              ? "Nenhum dia de estudo registrado nesta semana"
+              : `Você estudou em ${diasEstudados} dos últimos 7 dias`}
+          </li>
+          {semana.map((d, i) => (
+            <li
+              key={d.data}
+              className={`${d.minutos > 0 ? "feito-dia" : ""}${d.data === dataHoje ? " hoje" : ""}`}
+              style={{ ["--i" as string]: i }}
+              title={`${d.rotulo} ${formatarData(d.data).slice(0, 5)}: ${d.minutos > 0 ? formatarMinutos(d.minutos) : "sem estudo"}`}
+            >
+              <span className="bolha" />
+              <span className="dia">{d.rotulo}</span>
+              <span className="sr">{d.minutos > 0 ? `estudou ${formatarMinutos(d.minutos)}` : "sem estudo"}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <div className="grid">
         <div className={`stat${revisoes.length > 0 ? " destaque" : ""}`}>

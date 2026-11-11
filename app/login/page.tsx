@@ -1,3 +1,5 @@
+import CampoSenha from "@/components/CampoSenha";
+import { GabaritoArte, Logo } from "@/components/Ilustracoes";
 import { criarConta, entrar } from "./actions";
 
 export default async function LoginPage({
@@ -8,29 +10,47 @@ export default async function LoginPage({
   const { erro, info } = await searchParams;
 
   return (
-    <main className="login">
-      <h1>Estudos para Concursos</h1>
-      <p className="muted">Entre ou crie sua conta para começar.</p>
+    <main className="entrada">
+      <section className="entrada-arte">
+        <span className="marca">
+          <Logo />
+          Estudos
+        </span>
+        <h1>Edital, revisões e simulados em um só caderno.</h1>
+        <p>Cada tópico que você conclui agenda as próprias revisões. Você só precisa abrir e estudar.</p>
+        <GabaritoArte className="entrada-ilustracao" />
+      </section>
 
-      {erro && <p className="aviso erro">{erro}</p>}
-      {info && <p className="aviso info">{info}</p>}
+      <section className="entrada-form">
+        <div className="entrada-cartao">
+          <h2>Entre no seu caderno</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Primeira vez aqui? Preencha e toque em Criar conta.
+          </p>
 
-      <form className="stack">
-        <label>
-          E-mail
-          <input name="email" type="email" autoComplete="email" required />
-        </label>
-        <label>
-          Senha
-          <input name="senha" type="password" autoComplete="current-password" required />
-        </label>
-        <div className="row">
-          <button formAction={entrar} className="primario">
-            Entrar
-          </button>
-          <button formAction={criarConta}>Criar conta</button>
+          {erro && <p className="aviso erro">{erro}</p>}
+          {info && <p className="aviso info">{info}</p>}
+
+          <form className="stack">
+            <label>
+              E-mail
+              <input name="email" type="email" autoComplete="email" required />
+            </label>
+            <label>
+              Senha
+              <CampoSenha />
+            </label>
+            <div className="row">
+              <button formAction={entrar} className="primario" style={{ flex: 1 }}>
+                Entrar
+              </button>
+              <button formAction={criarConta} style={{ flex: 1 }}>
+                Criar conta
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </section>
     </main>
   );
 }
