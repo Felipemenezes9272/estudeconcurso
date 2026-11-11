@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { importarEdital } from "@/app/actions";
+import { TIPOS_EVENTO } from "@/lib/calendario";
 import type { EditalExtraido } from "@/lib/edital-ia";
 
 type Etapa = "envio" | "lendo" | "revisao";
@@ -59,6 +60,29 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
     );
   }
 
+  function alterarData(i: number, campo: "titulo" | "data" | "tipo", valor: string) {
+    setEdital((atual) =>
+      atual
+        ? {
+            ...atual,
+            datas: atual.datas.map((d, j) => (j === i ? { ...d, [campo]: valor } : d)),
+          }
+        : atual,
+    );
+  }
+
+  function removerData(i: number) {
+    setEdital((atual) => (atual ? { ...atual, datas: atual.datas.filter((_, j) => j !== i) } : atual));
+  }
+
+  function adicionarData() {
+    setEdital((atual) =>
+      atual
+        ? { ...atual, datas: [...atual.datas, { titulo: "", data: "", tipo: "outro" }] }
+        : atual,
+    );
+  }
+
   function removerMateria(i: number) {
     setEdital((atual) =>
       atual ? { ...atual, materias: atual.materias.filter((_, j) => j !== i) } : atual,
@@ -110,7 +134,7 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
     <form action={importarEdital} className="stack">
       <p className="aviso info">
         A IA pode errar. Revise os nomes, o peso (1 a 5) e os tópicos antes de salvar. Encontrei{" "}
-        {dados.materias.length} matérias e {totalTopicos} tópicos.
+        {dados.materias.length} matérias, {totalTopicos} tópicos e {edital.datas.length} datas.
       </p>
 
       <section className="card stack">
@@ -136,6 +160,47 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
               onChange={(e) => alterar("data_prova", e.target.value)}
             />
           </label>
+        </div>
+      </section>
+
+      <section className="card stack">
+        <h2>Datas importantes (vão para o calendário)</h2>
+        {edital.datas.length === 0 && (
+          <p className="muted">A IA não encontrou datas no PDF. Você pode adicionar as suas abaixo.</p>
+        )}
+        {edital.datas.map((d, i) => (
+          <div key={i} className="row">
+            <label style={{ flex: 3, minWidth: 180 }}>
+              Evento
+              <input
+                value={d.titulo}
+                onChange={(e) => alterarData(i, "titulo", e.target.value)}
+                placeholder="Ex.: Fim das inscrições"
+              />
+            </label>
+            <label style={{ flex: 1, minWidth: 140 }}>
+              Data
+              <input type="date" value={d.data} onChange={(e) => alterarData(i, "data", e.target.value)} />
+            </label>
+            <label style={{ flex: 1, minWidth: 140 }}>
+              Tipo
+              <select value={d.tipo} onChange={(e) => alterarData(i, "tipo", e.target.value)}>
+                {TIPOS_EVENTO.map((t) => (
+                  <option key={t.valor} value={t.valor}>
+                    {t.rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="pequeno" onClick={() => removerData(i)}>
+              Remover
+            </button>
+          </div>
+        ))}
+        <div>
+          <button type="button" className="pequeno" onClick={adicionarData}>
+            Adicionar data
+          </button>
         </div>
       </section>
 

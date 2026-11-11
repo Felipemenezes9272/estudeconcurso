@@ -1,13 +1,17 @@
+import { tipoValido, type TipoEvento } from "@/lib/calendario";
+
 // Regras compartilhadas da importação de edital por IA: formato esperado,
 // pedido enviado ao Gemini e limpeza do que ele devolve.
 
 export type MateriaExtraida = { nome: string; peso: number; topicos: string[] };
+export type EventoExtraido = { titulo: string; data: string; tipo: TipoEvento };
 export type EditalExtraido = {
   nome: string;
   banca: string;
   cargo: string;
   data_prova: string; // AAAA-MM-DD ou vazio
   materias: MateriaExtraida[];
+  datas: EventoExtraido[];
 };
 
 const MAX_MATERIAS = 40;
@@ -20,6 +24,7 @@ Do PDF, extraia:
 - banca: banca organizadora, se constar.
 - cargo: o cargo principal. Se houver vários, junte os nomes separados por " / ".
 - data_prova: data da prova objetiva no formato AAAA-MM-DD, somente se estiver explícita; senão deixe vazio.
+- datas: as datas importantes do cronograma do edital (início e fim das inscrições, prazo de isenção da taxa, data da prova objetiva e das demais etapas, divulgação de gabarito e de resultados, prazos de recurso). Cada uma com titulo curto (ex.: "Fim das inscrições"), data no formato AAAA-MM-DD e tipo: "inscricao", "isencao", "prova", "resultado", "recurso" ou "outro". Para um período (ex.: inscrições de 10 a 30 de março), crie duas datas: o início e o fim. Inclua somente datas explícitas no documento; se a data for "a definir" ou não tiver dia certo, não inclua.
 - materias: as disciplinas do CONTEÚDO PROGRAMÁTICO (programa das provas). Para cada uma:
   - nome da disciplina;
   - peso: de 1 a 5, estimado pelo número de questões ou pelo peso da disciplina no edital (mais questões ou peso maior = nota maior). Se o edital não informar, use 3;
@@ -35,6 +40,18 @@ export const ESQUEMA_RESPOSTA = {
     banca: { type: "STRING" },
     cargo: { type: "STRING" },
     data_prova: { type: "STRING" },
+    datas: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          titulo: { type: "STRING" },
+          data: { type: "STRING" },
+          tipo: { type: "STRING" },
+        },
+        required: ["titulo", "data", "tipo"],
+      },
+    },
     materias: {
       type: "ARRAY",
       items: {
@@ -48,7 +65,7 @@ export const ESQUEMA_RESPOSTA = {
       },
     },
   },
-  required: ["nome", "banca", "cargo", "data_prova", "materias"],
+  required: ["nome", "banca", "cargo", "data_prova", "datas", "materias"],
 } as const;
 
 function str(valor: unknown, max: number): string {
@@ -64,6 +81,30 @@ function dataValida(valor: string): string {
     d.getUTCMonth() === Number(m[2]) - 1 &&
     d.getUTCDate() === Number(m[3]);
   return ok ? valor : "";
+}
+
+const MAX_DATAS = 40;
+
+/** Valida a lista de datas importantes: descarta datas inválidas e repetidas. */
+export function normalizarDatas(bruto: unknown): EventoExtraido[] {
+  const lista = Array.isArray(bruto) ? bruto : [];
+  const vistos = new Set<string>();
+  const datas: EventoExtraido[] = [];
+
+  for (const item of lista) {
+    if (datas.length >= MAX_DATAS) break;
+    const e = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+    const titulo = str(e.titulo, 150);
+    const data = dataValida(str(e.data, 10));
+    if (!titulo || !data) continue;
+
+    const chave = `${titulo.toLowerCase()}|${data}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    datas.push({ titulo, data, tipo: tipoValido(e.tipo) });
+  }
+
+  return datas.sort((a, b) => a.data.localeCompare(b.data));
 }
 
 /**
@@ -102,6 +143,7 @@ export function normalizarEdital(bruto: unknown): EditalExtraido {
   }
 
   return {
+    datas: normalizarDatas(o.datas),
     nome: str(o.nome, 200),
     banca: str(o.banca, 120),
     cargo: str(o.cargo, 200),

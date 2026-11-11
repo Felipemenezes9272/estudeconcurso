@@ -56,6 +56,15 @@ Se vincular o simulado a um tópico do edital, o resultado entra nos registros d
 prioridades). Usa a mesma `GEMINI_API_KEY` da importação de edital.
 Requer rodar `supabase/fase4_simulados.sql` uma vez no SQL Editor. Sem isso, a tela avisa o que fazer.
 
+## Fase 5: Calendário
+
+Em **Agenda** (`/calendario`): calendário mensal interativo. Toque em um dia para ver o que há nele,
+adicionar, editar ou excluir eventos. Mostra datas do edital, a data da prova de cada concurso e as
+revisões agendadas. Ao importar um edital em PDF, a IA também lê o cronograma (inscrições, isenção, prova,
+gabarito, resultado, recursos) e as datas entram no calendário ao salvar; você revisa antes. O painel
+mostra as datas dos próximos 30 dias.
+Requer rodar `supabase/fase5_calendario.sql` uma vez no SQL Editor. Sem isso, a tela avisa o que fazer.
+
 Ainda fora do projeto, de propósito: notificações e modo offline.
 
 ## Como colocar para rodar
@@ -64,7 +73,7 @@ Ainda fora do projeto, de propósito: notificações e modo offline.
 
 1. Crie uma conta gratuita em supabase.com e um novo projeto.
 2. Abra **SQL Editor**, cole todo o conteúdo de `supabase/schema.sql` e execute. Depois faça o mesmo
-   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades) e `supabase/fase4_simulados.sql` (simulados).
+   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades) `supabase/fase4_simulados.sql` (simulados) e `supabase/fase5_calendario.sql` (calendário).
 3. Em **Authentication → Providers → Email**, se quiser entrar logo após criar a conta, desligue
    "Confirm email" (é uso pessoal). Se deixar ligado, confirme o e-mail recebido antes de entrar.
 4. Em **Project Settings → API**, copie a **Project URL** e a chave **anon public**.

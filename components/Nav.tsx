@@ -67,6 +67,16 @@ const links = [
     ),
   },
   {
+    href: "/calendario",
+    rotulo: "Agenda",
+    icone: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M8 3v4M16 3v4M3 10h18" />
+      </>
+    ),
+  },
+  {
     href: "/revisoes",
     rotulo: "Revisões",
     icone: <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />,

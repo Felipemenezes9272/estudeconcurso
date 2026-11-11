@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hoje, somarDias } from "@/lib/datas";
 import { normalizarEdital } from "@/lib/edital-ia";
+import { tipoValido } from "@/lib/calendario";
 import { contarAcertos } from "@/lib/simulados";
 import { agendar, type Nota } from "@/lib/flashcards";
 import {
@@ -94,7 +95,27 @@ export async function importarEdital(formData: FormData) {
     }
   }
 
-  revalidatePath("/edital");
+  // Datas importantes do edital vão para o calendário. A data da prova também entra,
+  // se a IA não a tiver listado entre as datas.
+  const datas = [...edital.datas];
+  if (edital.data_prova && !datas.some((d) => d.tipo === "prova" && d.data === edital.data_prova)) {
+    datas.push({ titulo: "Prova objetiva", data: edital.data_prova, tipo: "prova" });
+  }
+  if (datas.length > 0) {
+    const { error: erroEventos } = await supabase.from("eventos").insert(
+      datas.map((d) => ({
+        concurso_id: concurso.id,
+        titulo: d.titulo,
+        data: d.data,
+        tipo: d.tipo,
+        origem: "edital",
+      })),
+    );
+    // Falha aqui (ex.: SQL do calendário não rodado) não derruba a importação: o edital já está salvo.
+    if (erroEventos) console.error("Não foi possível salvar as datas do edital:", erroEventos.message);
+  }
+
+  revalidatePath("/", "layout");
   redirect("/edital");
 }
 
@@ -480,6 +501,12 @@ export async function excluirConcurso(formData: FormData) {
   if (error) falhar(error.message);
   await ocultarMaterias(supabase, ((data ?? []) as { id: string }[]).map((m) => m.id));
 
+  await supabase
+    .from("eventos")
+    .update({ deleted_at: agora() })
+    .eq("concurso_id", id)
+    .is("deleted_at", null);
+
   const { error: erroConcurso } = await supabase
     .from("concursos")
     .update({ deleted_at: agora() })
@@ -733,4 +760,52 @@ export async function excluirSimulado(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect("/simulados");
+}
+
+// ---------- Calendário ----------
+
+function dadosDoEvento(formData: FormData) {
+  const titulo = texto(formData, "titulo");
+  const data = texto(formData, "data");
+  if (!titulo) falhar("Informe o título do evento.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) falhar("Informe uma data válida.");
+
+  return {
+    titulo,
+    data,
+    tipo: tipoValido(texto(formData, "tipo")),
+    observacao: texto(formData, "observacao") || null,
+  };
+}
+
+export async function criarEvento(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("eventos")
+    .insert({ ...dadosDoEvento(formData), concurso_id: texto(formData, "concurso_id") || null });
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function editarEvento(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("eventos")
+    .update({ ...dadosDoEvento(formData), concurso_id: texto(formData, "concurso_id") || null })
+    .eq("id", texto(formData, "evento_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function excluirEvento(formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("eventos")
+    .update({ deleted_at: agora() })
+    .eq("id", texto(formData, "evento_id"));
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
 }

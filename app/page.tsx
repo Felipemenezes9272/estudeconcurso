@@ -1,14 +1,15 @@
 import Link from "next/link";
 import ListaRevisoes from "@/components/ListaRevisoes";
 import { listarRevisoesPendentes } from "@/lib/consultas";
-import { dataPorExtenso, formatarMinutos, hoje, somarDias } from "@/lib/datas";
+import { distanciaTexto, ROTULO_EVENTO, type TipoEvento } from "@/lib/calendario";
+import { dataPorExtenso, formatarData, formatarMinutos, hoje, somarDias } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PainelPage() {
   const supabase = await createClient();
   const dataHoje = hoje();
 
-  const [revisoes, sessoes, totalTopicos, concluidos, questoes, cartoes] = await Promise.all([
+  const [revisoes, sessoes, totalTopicos, concluidos, questoes, cartoes, agenda] = await Promise.all([
     listarRevisoesPendentes(supabase, dataHoje),
     supabase
       .from("sessoes_estudo")
@@ -30,7 +31,19 @@ export default async function PainelPage() {
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null)
       .lte("proxima_revisao", dataHoje),
+    supabase
+      .from("eventos")
+      .select("id, titulo, data, tipo")
+      .is("deleted_at", null)
+      .gte("data", dataHoje)
+      .lte("data", somarDias(dataHoje, 30))
+      .order("data")
+      .limit(4),
   ]);
+  // Se a tabela ainda não existir (SQL da fase 5 não rodado), a consulta devolve erro e não mostramos o aviso.
+  const proximasDatas = agenda.error
+    ? []
+    : ((agenda.data ?? []) as { id: string; titulo: string; data: string; tipo: TipoEvento }[]);
   // Se a tabela ainda não existir (SQL da fase 2 não rodado), a consulta devolve erro e contamos 0.
   const cartoesHoje = cartoes.error ? 0 : (cartoes.count ?? 0);
 
@@ -95,6 +108,26 @@ export default async function PainelPage() {
             Você tem <strong>{cartoesHoje}</strong> {cartoesHoje === 1 ? "cartão" : "cartões"} para estudar hoje.
           </p>
           <Link href="/flashcards">Estudar agora →</Link>
+        </section>
+      )}
+
+      {proximasDatas.length > 0 && (
+        <section className="card">
+          <h2>Próximas datas</h2>
+          <ul className="lista">
+            {proximasDatas.map((e) => (
+              <li key={e.id}>
+                <span>
+                  <span className={`ponto ev-${e.tipo}`} /> <strong>{e.titulo}</strong>{" "}
+                  <span className="muted">· {ROTULO_EVENTO[e.tipo]}</span>
+                </span>
+                <span className="muted">
+                  {formatarData(e.data)} · {distanciaTexto(dataHoje, e.data)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Link href="/calendario">Abrir o calendário →</Link>
         </section>
       )}
 
