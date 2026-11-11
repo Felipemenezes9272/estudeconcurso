@@ -809,3 +809,39 @@ export async function excluirEvento(formData: FormData) {
 
   revalidatePath("/", "layout");
 }
+
+// ---------- Avisos ----------
+
+export async function marcarAvisoLido(formData: FormData) {
+  const chave = texto(formData, "chave");
+  if (!chave || chave.length > 200) falhar("Aviso inválido.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("avisos_lidos")
+    .upsert({ chave }, { onConflict: "user_id,chave", ignoreDuplicates: true });
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}
+
+export async function marcarTodosAvisosLidos(formData: FormData) {
+  let chaves: unknown;
+  try {
+    chaves = JSON.parse(texto(formData, "chaves"));
+  } catch {
+    falhar("Avisos inválidos.");
+  }
+  const lista = (Array.isArray(chaves) ? chaves : [])
+    .filter((c): c is string => typeof c === "string" && c.length > 0 && c.length <= 200)
+    .slice(0, 100);
+  if (lista.length === 0) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("avisos_lidos")
+    .upsert(lista.map((chave) => ({ chave })), { onConflict: "user_id,chave", ignoreDuplicates: true });
+  if (error) falhar(error.message);
+
+  revalidatePath("/", "layout");
+}

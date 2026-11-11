@@ -107,8 +107,11 @@ h2 {
   font-weight: 700;
   letter-spacing: -0.01em;
 }
-.topbar form {
+.topbar-acoes {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tabs {
@@ -836,4 +839,53 @@ button.cal-dia.hoje .cal-num {
   .tabs a {
     font-size: 0.64rem;
   }
+}
+
+/* Avisos */
+.sino {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--suave);
+}
+.sino svg {
+  width: 22px;
+  height: 22px;
+}
+.sino:hover,
+.sino.ativo {
+  background: var(--azul-suave);
+  color: var(--azul);
+}
+.sino-numero {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--vermelho);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.aviso-item.lido {
+  opacity: 0.7;
+}
+.tag.nivel-urgente {
+  color: var(--vermelho);
+  background: var(--vermelho-suave);
+  border-color: var(--vermelho);
+}
+.tag.nivel-atencao {
+  color: var(--amarelo);
+  background: var(--amarelo-suave);
+  border-color: var(--amarelo);
 }

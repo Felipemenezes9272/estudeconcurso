@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
+import { carregarAvisos } from "@/lib/avisos-consulta";
+import { hoje } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -21,10 +23,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Contador do sino. Qualquer falha na consulta não pode derrubar a página.
+  let avisosNovos = 0;
+  if (user) {
+    try {
+      avisosNovos = (await carregarAvisos(supabase, hoje())).naoLidos.length;
+    } catch {
+      avisosNovos = 0;
+    }
+  }
+
   return (
     <html lang="pt-BR">
       <body>
-        {user && <Nav />}
+        {user && <Nav avisos={avisosNovos} />}
         <div className="container">{children}</div>
       </body>
     </html>

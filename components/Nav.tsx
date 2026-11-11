@@ -83,7 +83,7 @@ const links = [
   },
 ];
 
-export default function Nav() {
+export default function Nav({ avisos = 0 }: { avisos?: number }) {
   const caminho = usePathname() ?? "";
 
   return (
@@ -106,9 +106,21 @@ export default function Nav() {
             );
           })}
         </nav>
-        <form action={sair}>
-          <button className="link">Sair</button>
-        </form>
+        <div className="topbar-acoes">
+          <Link
+            href="/avisos"
+            className={`sino${caminho.startsWith("/avisos") ? " ativo" : ""}`}
+            aria-label={avisos > 0 ? `Avisos: ${avisos} novos` : "Avisos"}
+          >
+            <Icone>
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
+            </Icone>
+            {avisos > 0 && <span className="sino-numero">{avisos > 9 ? "9+" : avisos}</span>}
+          </Link>
+          <form action={sair}>
+            <button className="link">Sair</button>
+          </form>
+        </div>
       </div>
     </header>
   );

@@ -65,7 +65,16 @@ gabarito, resultado, recursos) e as datas entram no calendário ao salvar; você
 mostra as datas dos próximos 30 dias.
 Requer rodar `supabase/fase5_calendario.sql` uma vez no SQL Editor. Sem isso, a tela avisa o que fazer.
 
-Ainda fora do projeto, de propósito: notificações e modo offline.
+## Fase 6: Avisos
+
+O sino no topo (**Avisos**, `/avisos`) mostra um contador de avisos novos e a lista deles: revisões atrasadas
+e do dia, cartões do dia, datas do calendário (hoje, amanhã, próximos 7 dias e, para provas, 14 e 30 dias
+antes), erros pendentes e dias sem registrar estudo. Os avisos são calculados na hora a partir dos seus
+dados; você marca como lido (um a um ou todos) e eles só voltam se a situação mudar.
+São avisos dentro do app: não há notificação no celular com o app fechado.
+Requer rodar `supabase/fase6_avisos.sql` uma vez no SQL Editor (sem ele, os avisos aparecem, mas não dá para marcar como lido).
+
+Ainda fora do projeto, de propósito: notificações no celular (push) e modo offline.
 
 ## Como colocar para rodar
 
@@ -73,7 +82,7 @@ Ainda fora do projeto, de propósito: notificações e modo offline.
 
 1. Crie uma conta gratuita em supabase.com e um novo projeto.
 2. Abra **SQL Editor**, cole todo o conteúdo de `supabase/schema.sql` e execute. Depois faça o mesmo
-   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades) `supabase/fase4_simulados.sql` (simulados) e `supabase/fase5_calendario.sql` (calendário).
+   com `supabase/fase2_erros.sql` (caderno de erros) `supabase/fase2_flashcards.sql` (flashcards) e `supabase/fase3_prioridades.sql` (prioridades) `supabase/fase4_simulados.sql` (simulados) `supabase/fase5_calendario.sql` (calendário) e `supabase/fase6_avisos.sql` (avisos).
 3. Em **Authentication → Providers → Email**, se quiser entrar logo após criar a conta, desligue
    "Confirm email" (é uso pessoal). Se deixar ligado, confirme o e-mail recebido antes de entrar.
 4. Em **Project Settings → API**, copie a **Project URL** e a chave **anon public**.
