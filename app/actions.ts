@@ -879,3 +879,51 @@ export async function salvarAnotacao(formData: FormData) {
   revalidatePath("/estudo/topico");
   redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}&ok=1`);
 }
+
+// ---------- Conteúdos pesquisados pela IA ----------
+
+export async function salvarConteudo(formData: FormData) {
+  const topicoId = texto(formData, "topico_id");
+  const titulo = texto(formData, "titulo").slice(0, 200);
+  const conteudo = String(formData.get("texto") ?? "").trim().slice(0, 20000);
+  if (!topicoId || !conteudo) falhar("Não há conteúdo para salvar.");
+
+  let fontes: { titulo: string; url: string }[] = [];
+  try {
+    const bruto: unknown = JSON.parse(texto(formData, "fontes") || "[]");
+    if (Array.isArray(bruto)) {
+      fontes = bruto
+        .filter(
+          (f): f is { titulo: string; url: string } =>
+            !!f && typeof f.titulo === "string" && typeof f.url === "string" && /^https?:\/\//.test(f.url),
+        )
+        .slice(0, 8)
+        .map((f) => ({ titulo: f.titulo.slice(0, 150), url: f.url.slice(0, 2000) }));
+    }
+  } catch {
+    // fontes inválidas: salva só o texto
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("conteudos_estudo")
+    .insert({ topico_id: topicoId, titulo: titulo || "Conteúdo", texto: conteudo, fontes });
+  if (error) falhar(error.message);
+
+  revalidatePath("/estudo/topico");
+  redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}&ok=conteudo`);
+}
+
+export async function excluirConteudo(formData: FormData) {
+  const id = texto(formData, "conteudo_id");
+  const topicoId = texto(formData, "topico_id");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("conteudos_estudo")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) falhar(error.message);
+
+  revalidatePath("/estudo/topico");
+  redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}`);
+}

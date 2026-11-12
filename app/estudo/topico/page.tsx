@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { alterarStatusTopico, salvarAnotacao } from "@/app/actions";
+import { alterarStatusTopico, excluirConteudo, salvarAnotacao } from "@/app/actions";
+import BotaoConfirmar from "@/components/BotaoConfirmar";
+import PesquisaIA from "@/components/PesquisaIA";
+import TextoEstudo from "@/components/TextoEstudo";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
 import { formatarData, formatarMinutos, hoje } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
@@ -63,7 +66,7 @@ export default async function EstudoPorTopicoPage({
   }
 
   const dia = hoje();
-  const [topico, sessoes, questoes, revisoes, cartoes, erros, nota] = await Promise.all([
+  const [topico, sessoes, questoes, revisoes, cartoes, erros, nota, conteudosRes] = await Promise.all([
     supabase.from("topicos").select("id, nome, status").eq("id", escolhido.id).single(),
     supabase.from("sessoes_estudo").select("minutos").eq("topico_id", escolhido.id).is("deleted_at", null),
     supabase.from("registros_questoes").select("total, acertos").eq("topico_id", escolhido.id).is("deleted_at", null),
@@ -77,7 +80,20 @@ export default async function EstudoPorTopicoPage({
     supabase.from("flashcards").select("proxima_revisao").eq("topico_id", escolhido.id).is("deleted_at", null),
     supabase.from("erros").select("id").eq("topico_id", escolhido.id).eq("status", "pendente").is("deleted_at", null),
     supabase.from("anotacoes_topico").select("texto").eq("topico_id", escolhido.id).maybeSingle(),
+    supabase
+      .from("conteudos_estudo")
+      .select("id, titulo, texto, fontes, created_at")
+      .eq("topico_id", escolhido.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
   ]);
+  const conteudos = (conteudosRes.data ?? []) as {
+    id: string;
+    titulo: string;
+    texto: string;
+    fontes: { titulo: string; url: string }[];
+    created_at: string;
+  }[];
 
   const status = (topico.data as { status: string } | null)?.status ?? "nao_iniciado";
   const minutos = ((sessoes.data ?? []) as { minutos: number }[]).reduce((s, x) => s + x.minutos, 0);
@@ -99,7 +115,8 @@ export default async function EstudoPorTopicoPage({
 
       <section className="card">
         <h2>{escolhido.rotulo}</h2>
-        {ok && <p className="aviso ok">Anotação salva.</p>}
+        {ok === "conteudo" && <p className="aviso ok">Conteúdo salvo.</p>}
+        {ok === "1" && <p className="aviso ok">Anotação salva.</p>}
         <form action={alterarStatusTopico} className="row">
           <input type="hidden" name="topico_id" value={escolhido.id} />
           <button name="status" value={PROXIMO[status]} className={`tag ${status}`} title="Clique para avançar o status">
@@ -145,6 +162,46 @@ export default async function EstudoPorTopicoPage({
           </Link>
         </div>
       </section>
+
+      <section className="card">
+        <h2>Pesquisar conteúdo com IA</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          A IA pesquisa na web sobre este tópico e monta um material de estudo. Salve o que for útil.
+        </p>
+        <PesquisaIA topicoId={escolhido.id} />
+      </section>
+
+      {conteudos.length > 0 && (
+        <section className="card">
+          <h2>Conteúdos salvos</h2>
+          {conteudos.map((c) => (
+            <details key={c.id} style={{ marginTop: 8 }}>
+              <summary>
+                {c.titulo} <span className="muted">· {formatarData(c.created_at.slice(0, 10))}</span>
+              </summary>
+              <TextoEstudo texto={c.texto} />
+              {c.fontes.length > 0 && (
+                <ul>
+                  {c.fontes.map((f) => (
+                    <li key={f.url}>
+                      <a href={f.url} target="_blank" rel="noopener noreferrer">
+                        {f.titulo}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form action={excluirConteudo} className="acoes">
+                <input type="hidden" name="conteudo_id" value={c.id} />
+                <input type="hidden" name="topico_id" value={escolhido.id} />
+                <BotaoConfirmar className="perigo pequeno" mensagem="Excluir este conteúdo salvo?">
+                  Excluir conteúdo
+                </BotaoConfirmar>
+              </form>
+            </details>
+          ))}
+        </section>
+      )}
 
       <section className="card">
         <h2>Anotações</h2>

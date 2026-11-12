@@ -148,3 +148,97 @@ export async function extrairJsonDoPdf(
     );
   }
 }
+
+export type Fonte = { titulo: string; url: string };
+
+/**
+ * Pede ao Gemini um texto de estudo usando a Pesquisa Google (grounding).
+ * Devolve o texto em markdown e as páginas consultadas.
+ */
+export async function pesquisarNaWeb(
+  prompt: string,
+): Promise<{ ok: true; texto: string; fontes: Fonte[] } | Falha> {
+  const chave = process.env.GEMINI_API_KEY;
+  if (!chave) {
+    return falha(
+      "A chave do Gemini ainda não foi configurada. Cadastre GEMINI_API_KEY nas variáveis de ambiente da Vercel.",
+      503,
+    );
+  }
+
+  const modelos = [
+    process.env.GEMINI_MODEL,
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+  ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
+
+  const prazo = Date.now() + 200_000;
+  const chamar = (modelo: string, comPensamento: boolean) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            ...(comPensamento ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
+          },
+        }),
+        signal: AbortSignal.timeout(Math.max(1_000, prazo - Date.now())),
+      },
+    );
+
+  let resposta: Response | null = null;
+  try {
+    for (const modelo of modelos) {
+      resposta = await chamar(modelo, true);
+      if (resposta.status === 400) resposta = await chamar(modelo, false);
+      if (![404, 429, 500, 503].includes(resposta.status)) break;
+    }
+  } catch {
+    return falha("A pesquisa demorou demais. Tente de novo em instantes.", 504);
+  }
+
+  if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
+  if (!resposta.ok) {
+    if (resposta.status === 429) {
+      return falha("Limite gratuito do Gemini atingido por agora. Aguarde um pouco e tente de novo.", 429);
+    }
+    if (resposta.status === 500 || resposta.status === 503) {
+      return falha("O Gemini está sobrecarregado neste momento. Aguarde alguns minutos e tente de novo.", 503);
+    }
+    if (resposta.status === 404) {
+      return falha("Nenhum dos modelos do Gemini está disponível para esta chave. Defina GEMINI_MODEL na Vercel.", 502);
+    }
+    return falha(`O Gemini devolveu um erro (${resposta.status}). Tente novamente.`, 502);
+  }
+
+  try {
+    const json = (await resposta.json()) as {
+      candidates?: {
+        content?: { parts?: { text?: string }[] }
+        groundingMetadata?: { groundingChunks?: { web?: { uri?: string; title?: string } }[] };
+      }[];
+    };
+    const candidato = json.candidates?.[0];
+    const texto = (candidato?.content?.parts?.map((p) => p.text ?? "").join("") ?? "").trim();
+    if (!texto) return falha("A IA não devolveu conteúdo. Tente de novo.", 502);
+
+    const vistas = new Set<string>();
+    const fontes: Fonte[] = [];
+    for (const c of candidato?.groundingMetadata?.groundingChunks ?? []) {
+      const url = c.web?.uri ?? "";
+      if (!/^https?:\/\//.test(url) || vistas.has(url)) continue;
+      vistas.add(url);
+      fontes.push({ titulo: (c.web?.title ?? url).slice(0, 150), url });
+      if (fontes.length >= 8) break;
+    }
+    return { ok: true, texto, fontes };
+  } catch {
+    return falha("Resposta inesperada do Gemini. Tente novamente.", 502);
+  }
+}
