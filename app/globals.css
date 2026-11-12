@@ -1513,3 +1513,31 @@ a.atalho:hover {
 .texto-estudo ol {
   padding-left: 22px;
 }
+
+/* ---- Cartão que vira ---- */
+.flip {
+  perspective: 1200px;
+}
+.flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.flip-inner.virado {
+  transform: rotateY(180deg);
+}
+.flip-inner > .face {
+  grid-area: 1 / 1;
+  min-height: 150px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: var(--sombra);
+}
+.flip-inner > .face.resposta {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner {
+    transition: none;
+  }
+}

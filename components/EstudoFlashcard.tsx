@@ -23,30 +23,32 @@ export default function EstudoFlashcard({
         {cartao.contexto} · {restantes} {restantes === 1 ? "cartão restante" : "cartões restantes"} hoje
       </div>
 
-      <div className="face">
-        <div className="rotulo-face">Pergunta</div>
-        <p>{cartao.frente}</p>
-      </div>
-
-      {revelado ? (
-        <>
-          <div className="face resposta">
+      <div className="flip">
+        <div className={`flip-inner${revelado ? " virado" : ""}`}>
+          <div className="face frente" aria-hidden={revelado}>
+            <div className="rotulo-face">Pergunta</div>
+            <p>{cartao.frente}</p>
+          </div>
+          <div className="face resposta" aria-hidden={!revelado}>
             <div className="rotulo-face">Resposta</div>
             <p>{cartao.verso}</p>
           </div>
-          <form action={avaliarFlashcard} className="notas">
-            <input type="hidden" name="flashcard_id" value={cartao.id} />
-            {NOTAS.map((n) => (
-              <button key={n.valor} name="nota" value={n.valor} className={`nota ${n.valor}`}>
-                {n.rotulo}
-                <span>{n.dica}</span>
-              </button>
-            ))}
-          </form>
-        </>
+        </div>
+      </div>
+
+      {revelado ? (
+        <form action={avaliarFlashcard} className="notas">
+          <input type="hidden" name="flashcard_id" value={cartao.id} />
+          {NOTAS.map((n) => (
+            <button key={n.valor} name="nota" value={n.valor} className={`nota ${n.valor}`}>
+              {n.rotulo}
+              <span>{n.dica}</span>
+            </button>
+          ))}
+        </form>
       ) : (
         <button type="button" className="primario" onClick={() => setRevelado(true)}>
-          Mostrar resposta
+          Virar o cartão
         </button>
       )}
     </div>
