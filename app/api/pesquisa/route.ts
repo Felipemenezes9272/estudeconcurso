@@ -3,7 +3,7 @@ import { pesquisarNaWeb } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function erro(mensagem: string, status: number) {
   return NextResponse.json({ erro: mensagem }, { status });
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return erro("Faça login para pesquisar.", 401);
 
-  let corpo: { topico_id?: unknown; foco?: unknown };
+  let corpo: { topico_id?: unknown; foco?: unknown; modo?: unknown; nivel?: unknown; duracao?: unknown };
   try {
     corpo = await request.json();
   } catch {
@@ -26,6 +26,10 @@ export async function POST(request: Request) {
   const topicoId = typeof corpo.topico_id === "string" ? corpo.topico_id : "";
   const foco = typeof corpo.foco === "string" ? corpo.foco.trim().slice(0, 200) : "";
   if (!topicoId) return erro("Escolha um tópico.", 400);
+  const aula = corpo.modo === "aula";
+  const nivel = ["basico", "intermediario", "avancado"].includes(String(corpo.nivel)) ? String(corpo.nivel) : "intermediario";
+  const duracao = [30, 60, 90].includes(Number(corpo.duracao)) ? Number(corpo.duracao) : 60;
+  const rotuloNivel = { basico: "básico (quem está começando)", intermediario: "intermediário", avancado: "avançado (revisão aprofundada)" }[nivel as "basico"];
 
   const { data } = await supabase
     .from("topicos")
@@ -51,6 +55,19 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join("\n");
 
+  const promptAula = `Você é um professor de cursinho para concursos públicos brasileiros. Pesquise na web e MONTE UMA AULA completa, pronta para estudar, sobre o tópico abaixo.
+
+${contexto}
+Nível: ${rotuloNivel}
+Duração prevista: ${duracao} minutos de estudo
+
+Regras:
+- Escreva em português, em markdown. Tamanho proporcional à duração: cerca de ${duracao === 30 ? "700" : duracao === 60 ? "1300" : "1900"} palavras.
+- Estrutura, com títulos "##": "Objetivos da aula" (3 a 5 itens), "Aquecimento" (2 frases que contextualizam o assunto), "Desenvolvimento" (de 3 a ${duracao === 30 ? "4" : "6"} subtópicos em ordem lógica, cada um com "###", explicação clara e um exemplo), "Quadro-resumo" (lista com o essencial), "Como cai em prova" (pontos cobrados e pegadinhas), "Exercícios" (${duracao === 30 ? "4" : "6"} questões, mistas de certo/errado e múltipla escolha, com "Gabarito comentado" logo depois de todas) e "Roteiro de estudo" (divisão do tempo da aula em etapas, somando ${duracao} minutos).
+- Quando houver lei, cite número da lei e dos artigos somente se tiver confirmado na pesquisa; nunca invente artigo, súmula ou jurisprudência.
+- Se a banca for conhecida, adapte o estilo dos exercícios a ela, apenas se encontrar base para isso.
+- Não faça introdução sobre o pedido; vá direto à aula.`;
+
   const prompt = `Você é um professor de cursinho para concursos públicos brasileiros. Pesquise na web e monte um material de estudo confiável sobre o tópico abaixo.
 
 ${contexto}
@@ -62,11 +79,11 @@ Regras:
 - Se a banca for conhecida, destaque como ela costuma cobrar o assunto, apenas se encontrar base para isso.
 - Não repita o enunciado do pedido nem faça introdução; vá direto ao conteúdo.`;
 
-  const resultado = await pesquisarNaWeb(prompt);
+  const resultado = await pesquisarNaWeb(aula ? promptAula : prompt, aula ? 16384 : 8192);
   if (!resultado.ok) return erro(resultado.erro, resultado.status);
 
   return NextResponse.json({
-    titulo: t.nome,
+    titulo: aula ? `Aula: ${t.nome}` : t.nome,
     texto: resultado.texto,
     fontes: resultado.fontes,
   });

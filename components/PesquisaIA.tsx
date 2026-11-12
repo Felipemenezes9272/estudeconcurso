@@ -8,6 +8,9 @@ type Resultado = { titulo: string; texto: string; fontes: { titulo: string; url:
 
 export default function PesquisaIA({ topicoId }: { topicoId: string }) {
   const [foco, setFoco] = useState("");
+  const [modo, setModo] = useState<"resumo" | "aula">("resumo");
+  const [nivel, setNivel] = useState("intermediario");
+  const [duracao, setDuracao] = useState("60");
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -21,7 +24,7 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
       const resposta = await fetch("/api/pesquisa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topico_id: topicoId, foco }),
+        body: JSON.stringify({ topico_id: topicoId, foco, modo, nivel, duracao: Number(duracao) }),
       });
       const json = (await resposta.json().catch(() => ({}))) as Partial<Resultado> & { erro?: string };
       if (!resposta.ok || !json.texto) {
@@ -37,6 +40,50 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
 
   return (
     <div className="stack">
+      <nav className="subabas" aria-label="O que montar">
+        <a
+          href="#resumo"
+          className={modo === "resumo" ? "ativa" : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            if (!buscando) setModo("resumo");
+          }}
+        >
+          Resumo rápido
+        </a>
+        <a
+          href="#aula"
+          className={modo === "aula" ? "ativa" : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            if (!buscando) setModo("aula");
+          }}
+        >
+          Montar aula completa
+        </a>
+      </nav>
+
+      {modo === "aula" && (
+        <div className="row">
+          <label style={{ flex: 1, minWidth: 150 }}>
+            Nível
+            <select value={nivel} onChange={(e) => setNivel(e.target.value)} disabled={buscando}>
+              <option value="basico">Básico</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="avancado">Avançado</option>
+            </select>
+          </label>
+          <label style={{ flex: 1, minWidth: 150 }}>
+            Duração
+            <select value={duracao} onChange={(e) => setDuracao(e.target.value)} disabled={buscando}>
+              <option value="30">30 minutos</option>
+              <option value="60">1 hora</option>
+              <option value="90">1h30</option>
+            </select>
+          </label>
+        </div>
+      )}
+
       <form onSubmit={pesquisar} className="row">
         <label style={{ flex: 1, minWidth: 220 }}>
           Foco da pesquisa (opcional)
@@ -49,7 +96,13 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
           />
         </label>
         <button className="primario" disabled={buscando}>
-          {buscando ? "Pesquisando…" : "Pesquisar com IA"}
+          {buscando
+            ? modo === "aula"
+              ? "Montando a aula… (pode levar 1 a 2 minutos)"
+              : "Pesquisando…"
+            : modo === "aula"
+              ? "Montar aula com IA"
+              : "Pesquisar com IA"}
         </button>
       </form>
 

@@ -157,6 +157,7 @@ export type Fonte = { titulo: string; url: string };
  */
 export async function pesquisarNaWeb(
   prompt: string,
+  maxTokens = 8192,
 ): Promise<{ ok: true; texto: string; fontes: Fonte[] } | Falha> {
   const chave = process.env.GEMINI_API_KEY;
   if (!chave) {
@@ -173,7 +174,7 @@ export async function pesquisarNaWeb(
     "gemini-3.5-flash-lite",
   ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
 
-  const prazo = Date.now() + 200_000;
+  const prazo = Date.now() + 240_000;
   const chamar = (modelo: string, comPensamento: boolean) =>
     fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
@@ -184,7 +185,7 @@ export async function pesquisarNaWeb(
           contents: [{ parts: [{ text: prompt }] }],
           tools: [{ google_search: {} }],
           generationConfig: {
-            maxOutputTokens: 8192,
+            maxOutputTokens: maxTokens,
             ...(comPensamento ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
           },
         }),

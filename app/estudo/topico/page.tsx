@@ -164,9 +164,9 @@ export default async function EstudoPorTopicoPage({
       </section>
 
       <section className="card">
-        <h2>Pesquisar conteúdo com IA</h2>
+        <h2>Pesquisar e montar aula com IA</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          A IA pesquisa na web sobre este tópico e monta um material de estudo. Salve o que for útil.
+          A IA pesquisa na web sobre este tópico e monta um resumo rápido ou uma aula completa (objetivos, desenvolvimento, exercícios com gabarito e roteiro de estudo). Salve o que for útil.
         </p>
         <PesquisaIA topicoId={escolhido.id} />
       </section>
