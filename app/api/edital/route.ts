@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (!resultado.ok) return erro(resultado.erro, resultado.status);
 
   const edital = normalizarEdital(resultado.dados);
-  if (edital.materias.length === 0) {
+  if (edital.materias.length === 0 && edital.cargos.every((c) => c.materias.length === 0)) {
     return erro("Não encontrei matérias nesse PDF. Confira se ele contém o conteúdo programático.", 422);
   }
 

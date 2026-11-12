@@ -13,6 +13,9 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
   const [edital, setEdital] = useState<EditalExtraido | null>(null);
   // Tópicos ficam como texto (um por linha) durante a edição.
   const [textos, setTextos] = useState<string[]>([]);
+  // Edital com vários cargos: o que a IA devolveu e a vaga escolhida (-1 = ainda não escolhida).
+  const [original, setOriginal] = useState<EditalExtraido | null>(null);
+  const [vaga, setVaga] = useState(-1);
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,13 +39,30 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
         setEtapa("envio");
         return;
       }
-      setEdital(json.edital);
-      setTextos(json.edital.materias.map((m) => m.topicos.join("\n")));
+      setOriginal(json.edital);
+      setVaga(-1);
+      if (json.edital.cargos.length > 0) {
+        // As matérias aparecem depois que a pessoa escolher a vaga pretendida.
+        setEdital({ ...json.edital, materias: [] });
+        setTextos([]);
+      } else {
+        setEdital(json.edital);
+        setTextos(json.edital.materias.map((m) => m.topicos.join("\n")));
+      }
       setEtapa("revisao");
     } catch {
       setErro("Falha de conexão. Verifique a internet e tente de novo.");
       setEtapa("envio");
     }
+  }
+
+  function escolherVaga(indice: number) {
+    if (!original) return;
+    setVaga(indice);
+    const cargo = original.cargos[indice];
+    const materias = [...original.materias, ...(cargo?.materias ?? [])];
+    setEdital({ ...original, cargo: cargo?.nome ?? "", materias });
+    setTextos(materias.map((m) => m.topicos.join("\n")));
   }
 
   function alterar(campo: "nome" | "banca" | "cargo" | "data_prova", valor: string) {
@@ -118,8 +138,12 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
     );
   }
 
+  const temCargos = (original?.cargos.length ?? 0) > 0;
+  const aguardandoVaga = temCargos && vaga < 0;
+
   const dados: EditalExtraido = {
     ...edital,
+    cargos: [],
     materias: edital.materias.map((m, i) => ({
       ...m,
       topicos: (textos[i] ?? "").split("\n"),
@@ -136,6 +160,35 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
         A IA pode errar. Revise os nomes, o peso (1 a 5) e os tópicos antes de salvar. Encontrei{" "}
         {dados.materias.length} matérias, {totalTopicos} tópicos e {edital.datas.length} datas.
       </p>
+
+      {temCargos && original && (
+        <section className="card stack">
+          <h2>Vaga pretendida</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Este edital tem {original.cargos.length} cargos com conteúdos diferentes. Escolha o seu: o
+            sistema cadastra só as matérias dele
+            {original.materias.length > 0 ? `, mais as ${original.materias.length} comuns a todos` : ""}.
+          </p>
+          <label>
+            Cargo
+            <select value={vaga} onChange={(e) => escolherVaga(Number(e.target.value))} required>
+              <option value={-1} disabled>
+                Escolha a vaga…
+              </option>
+              {original.cargos.map((c, i) => (
+                <option key={c.nome} value={i}>
+                  {c.nome} ({original.materias.length + c.materias.length} matérias)
+                </option>
+              ))}
+            </select>
+          </label>
+          {vaga >= 0 && (
+            <p className="muted" style={{ margin: 0 }}>
+              Para estudar para outra vaga do mesmo edital, importe o PDF de novo e escolha o outro cargo.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="card stack">
         <h2>Concurso</h2>
@@ -204,6 +257,8 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
         </div>
       </section>
 
+      {aguardandoVaga && <p className="vazio">Escolha a vaga acima para ver as matérias dela.</p>}
+
       {edital.materias.map((m, i) => (
         <section key={i} className="card stack">
           <div className="row">
@@ -240,7 +295,7 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
 
       <input type="hidden" name="dados" value={JSON.stringify(dados)} />
       <div className="row">
-        <button className="primario" disabled={dados.materias.length === 0}>
+        <button className="primario" disabled={dados.materias.length === 0 || aguardandoVaga}>
           Salvar concurso
         </button>
         <button type="button" onClick={() => setEtapa("envio")}>
