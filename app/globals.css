@@ -1541,3 +1541,26 @@ a.atalho:hover {
     transition: none;
   }
 }
+
+/* ---- Faixa ilustrada de cada seção ---- */
+.faixa-secao {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.arte-secao {
+  flex: none;
+  width: 84px;
+  height: auto;
+}
+.faixa-secao strong {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+.faixa-secao span {
+  color: var(--suave);
+  font-size: 0.9rem;
+}

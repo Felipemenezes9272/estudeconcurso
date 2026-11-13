@@ -105,3 +105,85 @@ export function ApostilaArte({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Ilustração pequena de cada seção do menu, mostrada na faixa acima das sub-abas. */
+export function ArteSecao({ id, className }: { id: string; className?: string }) {
+  const caixa = { className, viewBox: "0 0 96 64", "aria-hidden": true } as const;
+  switch (id) {
+    case "edital":
+      return (
+        <svg {...caixa}>
+          <rect x="22" y="4" width="46" height="56" rx="5" fill={PAPEL} stroke={BORDA} strokeWidth="2" />
+          <rect x="30" y="14" width="22" height="5" rx="2.5" fill={MARCA} />
+          <rect x="30" y="25" width="30" height="4" rx="2" fill="#dbe2f1" />
+          <rect x="30" y="34" width="26" height="4" rx="2" fill="#dbe2f1" />
+          <rect x="30" y="43" width="30" height="4" rx="2" fill="#dbe2f1" />
+          <circle cx="72" cy="44" r="13" fill={AZUL} />
+          <path d="M66 44l4.5 4.5 8-9" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "estudo":
+      return (
+        <svg {...caixa}>
+          <rect x="8" y="30" width="52" height="26" rx="4" fill={AZUL} />
+          <rect x="8" y="30" width="52" height="7" rx="3" fill="#3d5cf0" />
+          <rect x="14" y="46" width="22" height="4" rx="2" fill="#fff" opacity="0.7" />
+          <circle cx="68" cy="26" r="19" fill={PAPEL} stroke={TINTA} strokeWidth="3" />
+          <circle cx="68" cy="26" r="13" fill={MARCA} />
+          <path d="M68 17v9l6 4" fill="none" stroke={TINTA} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "questoes":
+      return (
+        <svg {...caixa}>
+          <rect x="14" y="6" width="54" height="52" rx="5" fill={PAPEL} stroke={BORDA} strokeWidth="2" />
+          <g fill="none" stroke={TINTA} strokeWidth="1.8">
+            <circle cx="28" cy="22" r="5" />
+            <circle cx="42" cy="22" r="5" />
+            <circle cx="56" cy="22" r="5" />
+            <circle cx="28" cy="38" r="5" />
+            <circle cx="56" cy="38" r="5" />
+          </g>
+          <circle cx="42" cy="38" r="5" fill={AZUL} />
+          <rect x="22" y="48" width="30" height="4" rx="2" fill={MARCA} />
+          <g transform="translate(66 54) rotate(-45)">
+            <rect x="8" y="-5" width="26" height="10" rx="5" fill={AZUL} />
+            <polygon points="8,-5 0,0 8,5" fill="#e8ecfb" />
+            <polygon points="3,-1.6 0,0 3,1.6" fill={TINTA} />
+          </g>
+        </svg>
+      );
+    case "revisoes":
+      return (
+        <svg {...caixa}>
+          <rect x="30" y="8" width="50" height="38" rx="5" fill="#e8ecfb" transform="rotate(8 55 27)" />
+          <rect x="18" y="12" width="50" height="38" rx="5" fill={PAPEL} stroke={BORDA} strokeWidth="2" />
+          <rect x="26" y="22" width="26" height="5" rx="2.5" fill={MARCA} />
+          <rect x="26" y="32" width="34" height="4" rx="2" fill="#dbe2f1" />
+          <path d="M80 44a13 13 0 1 1-4-9.4" fill="none" stroke={AZUL} strokeWidth="4" strokeLinecap="round" />
+          <polygon points="70,30 82,30 77,40" fill={AZUL} />
+        </svg>
+      );
+    case "agenda":
+      return (
+        <svg {...caixa}>
+          <rect x="14" y="10" width="58" height="48" rx="6" fill={PAPEL} stroke={BORDA} strokeWidth="2" />
+          <rect x="14" y="10" width="58" height="14" rx="6" fill={AZUL} />
+          <rect x="26" y="4" width="5" height="12" rx="2.5" fill={TINTA} />
+          <rect x="55" y="4" width="5" height="12" rx="2.5" fill={TINTA} />
+          <g fill="#dbe2f1">
+            <rect x="22" y="31" width="8" height="7" rx="2" />
+            <rect x="34" y="31" width="8" height="7" rx="2" />
+            <rect x="46" y="31" width="8" height="7" rx="2" />
+            <rect x="22" y="42" width="8" height="7" rx="2" />
+            <rect x="34" y="42" width="8" height="7" rx="2" />
+          </g>
+          <rect x="46" y="42" width="8" height="7" rx="2" fill={MARCA} />
+          <circle cx="76" cy="44" r="11" fill="none" stroke={AZUL} strokeWidth="3" />
+          <path d="M76 38v6l4 3" fill="none" stroke={AZUL} strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
