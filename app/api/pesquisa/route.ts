@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return erro("Faça login para pesquisar.", 401);
 
-  let corpo: { topico_id?: unknown; foco?: unknown; modo?: unknown; nivel?: unknown; duracao?: unknown };
+  let corpo: { topico_id?: unknown; foco?: unknown; semWeb?: unknown; modo?: unknown; nivel?: unknown; duracao?: unknown };
   try {
     corpo = await request.json();
   } catch {
@@ -79,12 +79,20 @@ Regras:
 - Se a banca for conhecida, destaque como ela costuma cobrar o assunto, apenas se encontrar base para isso.
 - Não repita o enunciado do pedido nem faça introdução; vá direto ao conteúdo.`;
 
-  const resultado = await pesquisarNaWeb(aula ? promptAula : prompt, aula ? 16384 : 8192);
-  if (!resultado.ok) return erro(resultado.erro, resultado.status);
+  const semWeb = corpo.semWeb === true;
+  const resultado = await pesquisarNaWeb(aula ? promptAula : prompt, aula ? 16384 : 8192, !semWeb);
+  if (!resultado.ok) {
+    // Cota estourada: avisa a tela, que pode oferecer gerar sem a pesquisa na web.
+    return NextResponse.json(
+      { erro: resultado.erro, podeSemWeb: resultado.status === 429 && !semWeb },
+      { status: resultado.status },
+    );
+  }
 
   return NextResponse.json({
     titulo: aula ? `Aula: ${t.nome}` : t.nome,
     texto: resultado.texto,
     fontes: resultado.fontes,
+    semWeb,
   });
 }

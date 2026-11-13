@@ -158,6 +158,7 @@ export type Fonte = { titulo: string; url: string };
 export async function pesquisarNaWeb(
   prompt: string,
   maxTokens = 8192,
+  usarWeb = true,
 ): Promise<{ ok: true; texto: string; fontes: Fonte[] } | Falha> {
   const chave = process.env.GEMINI_API_KEY;
   if (!chave) {
@@ -183,7 +184,7 @@ export async function pesquisarNaWeb(
         headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
+          ...(usarWeb ? { tools: [{ google_search: {} }] } : {}),
           generationConfig: {
             maxOutputTokens: maxTokens,
             ...(comPensamento ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
@@ -207,7 +208,22 @@ export async function pesquisarNaWeb(
   if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
   if (!resposta.ok) {
     if (resposta.status === 429) {
-      return falha("Limite gratuito do Gemini atingido por agora. Aguarde um pouco e tente de novo.", 429);
+      // A pesquisa na web tem cota própria (menor que a do texto). Dizemos qual limite estourou.
+      const corpo = await resposta.text().catch(() => "");
+      console.error("Gemini 429:", corpo.slice(0, 600));
+      const espera = /"retryDelay":\s*"(\d+)/.exec(corpo)?.[1];
+      const diario = /PerDay|per day/i.test(corpo);
+      const tempo = diario
+        ? "O limite diário gratuito foi atingido; volta amanhã."
+        : espera
+          ? `Tente de novo em cerca de ${Math.max(1, Math.ceil(Number(espera) / 60))} minuto(s).`
+          : "Aguarde alguns minutos e tente de novo.";
+      return falha(
+        usarWeb
+          ? `O limite gratuito de pesquisas na web do Gemini foi atingido. ${tempo}`
+          : `O limite gratuito do Gemini foi atingido. ${tempo}`,
+        429,
+      );
     }
     if (resposta.status === 500 || resposta.status === 503) {
       return falha("O Gemini está sobrecarregado neste momento. Aguarde alguns minutos e tente de novo.", 503);

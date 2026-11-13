@@ -4,7 +4,7 @@ import { useState } from "react";
 import { salvarConteudo } from "@/app/actions";
 import TextoEstudo from "@/components/TextoEstudo";
 
-type Resultado = { titulo: string; texto: string; fontes: { titulo: string; url: string }[] };
+type Resultado = { titulo: string; texto: string; fontes: { titulo: string; url: string }[]; semWeb?: boolean };
 
 export default function PesquisaIA({ topicoId }: { topicoId: string }) {
   const [foco, setFoco] = useState("");
@@ -13,24 +13,27 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
   const [duracao, setDuracao] = useState("60");
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState("");
+  const [podeSemWeb, setPodeSemWeb] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
-  async function pesquisar(e: React.FormEvent) {
-    e.preventDefault();
+  async function pesquisar(e?: React.FormEvent, semWeb = false) {
+    e?.preventDefault();
     setErro("");
+    setPodeSemWeb(false);
     setResultado(null);
     setBuscando(true);
     try {
       const resposta = await fetch("/api/pesquisa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topico_id: topicoId, foco, modo, nivel, duracao: Number(duracao) }),
+        body: JSON.stringify({ topico_id: topicoId, foco, modo, nivel, duracao: Number(duracao), semWeb }),
       });
-      const json = (await resposta.json().catch(() => ({}))) as Partial<Resultado> & { erro?: string };
+      const json = (await resposta.json().catch(() => ({}))) as Partial<Resultado> & { erro?: string; podeSemWeb?: boolean };
       if (!resposta.ok || !json.texto) {
         setErro(json.erro ?? "Não foi possível pesquisar agora.");
+        setPodeSemWeb(Boolean(json.podeSemWeb));
       } else {
-        setResultado({ titulo: json.titulo ?? "Conteúdo", texto: json.texto, fontes: json.fontes ?? [] });
+        setResultado({ titulo: json.titulo ?? "Conteúdo", texto: json.texto, fontes: json.fontes ?? [], semWeb: json.semWeb });
       }
     } catch {
       setErro("Falha de conexão. Verifique a internet e tente de novo.");
@@ -107,9 +110,17 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
       </form>
 
       {erro && (
-        <p className="aviso erro" role="alert">
-          {erro}
-        </p>
+        <div className="aviso erro" role="alert">
+          <p style={{ margin: 0 }}>{erro}</p>
+          {podeSemWeb && (
+            <p style={{ margin: "8px 0 0" }}>
+              <button type="button" className="pequeno" onClick={() => pesquisar(undefined, true)} disabled={buscando}>
+                Gerar sem pesquisa na web
+              </button>{" "}
+              <span className="muted">Usa só o conhecimento da IA, sem fontes.</span>
+            </p>
+          )}
+        </div>
       )}
 
       {resultado && (
@@ -128,6 +139,11 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
                 ))}
               </ul>
             </>
+          )}
+          {resultado.semWeb && (
+            <p className="aviso atencao">
+              Gerado sem pesquisa na web, só com o conhecimento da IA e sem fontes. Confira leis e números antes de estudar.
+            </p>
           )}
           <p className="muted" style={{ fontSize: "0.85rem" }}>
             Conteúdo gerado por IA a partir de pesquisa na web. Confira nas fontes antes de decorar artigos e números.
