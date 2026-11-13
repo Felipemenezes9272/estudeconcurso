@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArteSecao } from "@/components/Ilustracoes";
-import { ArteSecao } from "@/components/Ilustracoes";
 import { secaoDoCaminho, subAbaAtiva } from "@/lib/navegacao";
 
 const DESCRICAO: Record<string, string> = {
