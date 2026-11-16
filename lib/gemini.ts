@@ -259,3 +259,65 @@ export async function pesquisarNaWeb(
     return falha("Resposta inesperada do Gemini. Tente novamente.", 502);
   }
 }
+
+/** Gera JSON a partir de um texto (sem PDF e sem pesquisa na web). */
+export async function gerarJsonDeTexto(
+  prompt: string,
+  esquema: object,
+): Promise<{ ok: true; dados: unknown } | Falha> {
+  const chave = process.env.GEMINI_API_KEY;
+  if (!chave) {
+    return falha("A chave do Gemini ainda não foi configurada. Cadastre GEMINI_API_KEY nas variáveis de ambiente da Vercel.", 503);
+  }
+  const modelos = [
+    process.env.GEMINI_MODEL,
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+  ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
+
+  const prazo = Date.now() + 120_000;
+  const chamar = (modelo: string, comPensamento: boolean) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json",
+            responseSchema: esquema,
+            ...(comPensamento ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
+          },
+        }),
+        signal: AbortSignal.timeout(Math.max(1_000, prazo - Date.now())),
+      },
+    );
+
+  let resposta: Response | null = null;
+  try {
+    for (const modelo of modelos) {
+      resposta = await chamar(modelo, true);
+      if (resposta.status === 400) resposta = await chamar(modelo, false);
+      if (![404, 429, 500, 503].includes(resposta.status)) break;
+    }
+  } catch {
+    return falha("O Gemini demorou demais. Tente de novo em instantes.", 504);
+  }
+  if (!resposta) return falha("Nenhum modelo do Gemini foi configurado.", 500);
+  if (!resposta.ok) {
+    if (resposta.status === 429) return falha("Limite gratuito do Gemini atingido por agora. Aguarde alguns minutos e tente de novo.", 429);
+    if (resposta.status === 500 || resposta.status === 503) return falha("O Gemini está sobrecarregado neste momento. Tente de novo em alguns minutos.", 503);
+    return falha(`O Gemini devolveu um erro (${resposta.status}). Tente novamente.`, 502);
+  }
+
+  try {
+    const json = (await resposta.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    const texto = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+    return { ok: true, dados: JSON.parse(texto) };
+  } catch {
+    return falha("A IA não conseguiu montar os cartões. Tente de novo.", 502);
+  }
+}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { alterarStatusTopico, excluirConteudo, salvarAnotacao } from "@/app/actions";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
+import GerarCartoes from "@/components/GerarCartoes";
 import PesquisaIA from "@/components/PesquisaIA";
 import TextoEstudo from "@/components/TextoEstudo";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
@@ -21,9 +22,9 @@ const PROXIMO: Record<string, string> = {
 export default async function EstudoPorTopicoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ topico?: string; ok?: string }>;
+  searchParams: Promise<{ topico?: string; ok?: string; n?: string }>;
 }) {
-  const { topico: id, ok } = await searchParams;
+  const { topico: id, ok, n } = await searchParams;
   const supabase = await createClient();
   const opcoes = await listarTopicosParaSelecao(supabase);
   const escolhido = opcoes.find((o) => o.id === id);
@@ -116,6 +117,11 @@ export default async function EstudoPorTopicoPage({
       <section className="card">
         <h2>{escolhido.rotulo}</h2>
         {ok === "conteudo" && <p className="aviso ok">Conteúdo salvo.</p>}
+        {ok === "cartoes" && (
+          <p className="aviso ok">
+            {Number(n) || ""} cartões salvos. Eles entram nas suas revisões em <Link href="/flashcards">Flashcards</Link>.
+          </p>
+        )}
         {ok === "1" && <p className="aviso ok">Anotação salva.</p>}
         <form action={alterarStatusTopico} className="row">
           <input type="hidden" name="topico_id" value={escolhido.id} />
@@ -191,6 +197,8 @@ export default async function EstudoPorTopicoPage({
                   ))}
                 </ul>
               )}
+              <h3>Flashcards</h3>
+              <GerarCartoes conteudoId={c.id} topicoId={escolhido.id} />
               <form action={excluirConteudo} className="acoes">
                 <input type="hidden" name="conteudo_id" value={c.id} />
                 <input type="hidden" name="topico_id" value={escolhido.id} />

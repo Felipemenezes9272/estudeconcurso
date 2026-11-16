@@ -927,3 +927,32 @@ export async function excluirConteudo(formData: FormData) {
   revalidatePath("/estudo/topico");
   redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}`);
 }
+
+export async function criarFlashcardsEmLote(formData: FormData) {
+  const topicoId = texto(formData, "topico_id");
+  if (!topicoId) falhar("Tópico não informado.");
+
+  let bruto: unknown;
+  try {
+    bruto = JSON.parse(texto(formData, "cartoes"));
+  } catch {
+    falhar("Cartões inválidos.");
+  }
+  const cartoes = (Array.isArray(bruto) ? bruto : [])
+    .map((c) => ({
+      frente: typeof c?.frente === "string" ? c.frente.trim().slice(0, 500) : "",
+      verso: typeof c?.verso === "string" ? c.verso.trim().slice(0, 1000) : "",
+    }))
+    .filter((c) => c.frente && c.verso)
+    .slice(0, 20);
+  if (cartoes.length === 0) falhar("Escolha ao menos um cartão.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("flashcards")
+    .insert(cartoes.map((c) => ({ topico_id: topicoId, frente: c.frente, verso: c.verso })));
+  if (error) falhar(error.message);
+
+  revalidatePath("/flashcards");
+  redirect(`/estudo/topico?topico=${encodeURIComponent(topicoId)}&ok=cartoes&n=${cartoes.length}`);
+}
