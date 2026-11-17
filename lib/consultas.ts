@@ -5,6 +5,7 @@ export type TopicoOpcao = { id: string; rotulo: string };
 
 export type RevisaoPendente = {
   id: string;
+  topico_id: string;
   data_prevista: string;
   intervalo_dias: number;
   topicos: { nome: string; materias: { nome: string } | null } | null;
@@ -30,7 +31,7 @@ export async function listarRevisoesPendentes(
 ): Promise<RevisaoPendente[]> {
   let consulta = supabase
     .from("revisoes")
-    .select("id, data_prevista, intervalo_dias, topicos(nome, materias(nome))")
+    .select("id, topico_id, data_prevista, intervalo_dias, topicos(nome, materias(nome))")
     .is("data_feita", null)
     .is("deleted_at", null)
     .order("data_prevista");

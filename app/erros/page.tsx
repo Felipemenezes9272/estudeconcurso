@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { alterarStatusErro, editarErro, excluirErro, registrarErro } from "@/app/actions";
+import FiltroTopico from "@/components/FiltroTopico";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
 import { formatarData } from "@/lib/datas";
@@ -7,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Erro = {
   id: string;
+  topico_id: string;
   data: string;
   enunciado: string;
   motivo: "desatencao" | "lacuna" | "pegadinha";
@@ -25,9 +27,9 @@ const MOTIVOS = {
 export default async function ErrosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; motivo?: string }>;
+  searchParams: Promise<{ ok?: string; motivo?: string; so?: string }>;
 }) {
-  const { ok, motivo } = await searchParams;
+  const { ok, motivo, so } = await searchParams;
   const filtro = motivo && motivo in MOTIVOS ? (motivo as keyof typeof MOTIVOS) : null;
 
   const supabase = await createClient();
@@ -35,13 +37,15 @@ export default async function ErrosPage({
     listarTopicosParaSelecao(supabase),
     supabase
       .from("erros")
-      .select("id, data, enunciado, motivo, anotacao, status, ultima_revisao, topicos(nome, materias(nome))")
+      .select("id, topico_id, data, enunciado, motivo, anotacao, status, ultima_revisao, topicos(nome, materias(nome))")
       .is("deleted_at", null)
       .order("data", { ascending: false })
       .order("created_at", { ascending: false }),
   ]);
 
-  const todos = (consulta.data ?? []) as unknown as Erro[];
+  const foco = topicos.find((t) => t.id === so);
+  const todosOsErros = (consulta.data ?? []) as unknown as Erro[];
+  const todos = foco ? todosOsErros.filter((e) => e.topico_id === foco.id) : todosOsErros;
   const pendentes = todos.filter((e) => e.status === "pendente");
   const dominados = todos.filter((e) => e.status === "dominado");
 
@@ -65,6 +69,9 @@ export default async function ErrosPage({
         {pendentes.length} para revisar · {dominados.length} dominado(s)
       </p>
 
+      {foco && (
+        <FiltroTopico rotulo={foco.rotulo} limparHref="/erros" voltarHref={`/estudo/topico?topico=${foco.id}`} />
+      )}
       {ok && <p className="aviso ok">Erro registrado no caderno.</p>}
 
       <div className="grid">
@@ -150,7 +157,7 @@ export default async function ErrosPage({
             Todos
           </Link>
           {(Object.keys(MOTIVOS) as (keyof typeof MOTIVOS)[]).map((m) => (
-            <Link key={m} href={`/erros?motivo=${m}`} className={`tag filtro${filtro === m ? " ativo" : ""}`}>
+            <Link key={m} href={`/erros?motivo=${m}${foco ? `&so=${foco.id}` : ""}`} className={`tag filtro${filtro === m ? " ativo" : ""}`}>
               {MOTIVOS[m].rotulo}
             </Link>
           ))}

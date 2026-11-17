@@ -144,7 +144,7 @@ export default async function EstudoPorTopicoPage({
               </span>
             </span>
           </Link>
-          <Link href="/revisoes" className="atalho">
+          <Link href={`/revisoes?so=${escolhido.id}`} className="atalho">
             <span>
               <strong>Revisões</strong>
               <span className="atalho-texto">
@@ -152,7 +152,7 @@ export default async function EstudoPorTopicoPage({
               </span>
             </span>
           </Link>
-          <Link href="/flashcards" className="atalho">
+          <Link href={`/flashcards?so=${escolhido.id}`} className="atalho">
             <span>
               <strong>Flashcards</strong>
               <span className="atalho-texto">
@@ -160,7 +160,7 @@ export default async function EstudoPorTopicoPage({
               </span>
             </span>
           </Link>
-          <Link href="/erros" className="atalho">
+          <Link href={`/erros?so=${escolhido.id}`} className="atalho">
             <span>
               <strong>Caderno de erros</strong>
               <span className="atalho-texto">{qtdErros} pendente(s)</span>
