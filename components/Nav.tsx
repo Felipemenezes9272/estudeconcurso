@@ -85,7 +85,12 @@ export default function Nav({ avisos = 0 }: { avisos?: number }) {
             {avisos > 0 && <span className="sino-numero">{avisos > 9 ? "9+" : avisos}</span>}
           </Link>
           <form action={sair}>
-            <button className="link">Sair</button>
+            <button
+              className="link"
+              onClick={() => navigator.serviceWorker?.controller?.postMessage("limpar")}
+            >
+              Sair
+            </button>
           </form>
         </div>
       </div>

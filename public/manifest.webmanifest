@@ -3,9 +3,10 @@
   "short_name": "Estudos",
   "description": "Edital, revisões e desempenho em um só lugar.",
   "start_url": "/",
+  "lang": "pt-BR",
   "display": "standalone",
-  "background_color": "#f6f7f9",
-  "theme_color": "#1d4ed8",
+  "background_color": "#f3f6fc",
+  "theme_color": "#1b3fd1",
   "icons": [
     {
       "src": "/icon-192.png",

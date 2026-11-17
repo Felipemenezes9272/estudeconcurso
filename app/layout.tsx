@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
+import RegistrarSW from "@/components/RegistrarSW";
 import SubAbas from "@/components/SubAbas";
 import { carregarAvisos } from "@/lib/avisos-consulta";
 import { hoje } from "@/lib/datas";
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <RegistrarSW />
         {user && <Nav avisos={avisosNovos} />}
         <div className="container">
           {user && <SubAbas />}
