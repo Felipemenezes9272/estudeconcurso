@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hoje, somarDias } from "@/lib/datas";
 import { normalizarEdital } from "@/lib/edital-ia";
 import { tipoValido } from "@/lib/calendario";
+import { normalizarSite } from "@/lib/links";
 import { contarAcertos } from "@/lib/simulados";
 import { agendar, type Nota } from "@/lib/flashcards";
 import {
@@ -26,6 +27,15 @@ function falhar(mensagem: string): never {
   throw new Error(mensagem);
 }
 
+/** Site informado no formulário: vazio vira null; endereço inválido interrompe com aviso. */
+function siteDoForm(formData: FormData): string | null {
+  const bruto = texto(formData, "site_url");
+  if (!bruto) return null;
+  const site = normalizarSite(bruto);
+  if (!site) falhar("O endereço do site não é válido. Exemplo: www.banca.org.br/concurso");
+  return site;
+}
+
 // ---------- Edital ----------
 
 export async function criarConcurso(formData: FormData) {
@@ -38,6 +48,7 @@ export async function criarConcurso(formData: FormData) {
     banca: texto(formData, "banca") || null,
     cargo: texto(formData, "cargo") || null,
     data_prova: texto(formData, "data_prova") || null,
+    site_url: siteDoForm(formData),
   });
   if (error) falhar(error.message);
 
@@ -65,6 +76,7 @@ export async function importarEdital(formData: FormData) {
       banca: edital.banca || null,
       cargo: edital.cargo || null,
       data_prova: edital.data_prova || null,
+      site_url: edital.site || null,
     })
     .select("id")
     .single();
@@ -482,6 +494,7 @@ export async function editarConcurso(formData: FormData) {
       banca: texto(formData, "banca") || null,
       cargo: texto(formData, "cargo") || null,
       data_prova: texto(formData, "data_prova") || null,
+      site_url: siteDoForm(formData),
     })
     .eq("id", texto(formData, "concurso_id"));
   if (error) falhar(error.message);

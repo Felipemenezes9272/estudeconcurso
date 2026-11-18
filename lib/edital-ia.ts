@@ -1,3 +1,4 @@
+import { normalizarSite } from "@/lib/links";
 import { tipoValido, type TipoEvento } from "@/lib/calendario";
 
 // Regras compartilhadas da importação de edital por IA: formato esperado,
@@ -11,6 +12,8 @@ export type EditalExtraido = {
   banca: string;
   cargo: string;
   data_prova: string; // AAAA-MM-DD ou vazio
+  /** Site oficial do concurso, se constar no PDF. */
+  site: string;
   /** Matérias de todos os cargos (ou do único cargo, quando o edital tem um só). */
   materias: MateriaExtraida[];
   /** Quando o edital tem vários cargos com programas diferentes: um item por cargo, só com as matérias dele. */
@@ -29,6 +32,7 @@ Do PDF, extraia:
 - banca: banca organizadora, se constar.
 - cargo: o nome do cargo, somente se o edital tiver um único cargo; se houver vários cargos, deixe vazio.
 - data_prova: data da prova objetiva no formato AAAA-MM-DD, somente se estiver explícita; senão deixe vazio.
+- site: endereço (URL) do site oficial do concurso ou da banca para inscrições e acompanhamento, somente se estiver escrito no documento; senão deixe vazio.
 - datas: as datas importantes do cronograma do edital (início e fim das inscrições, prazo de isenção da taxa, data da prova objetiva e das demais etapas, divulgação de gabarito e de resultados, prazos de recurso). Cada uma com titulo curto (ex.: "Fim das inscrições"), data no formato AAAA-MM-DD e tipo: "inscricao", "isencao", "prova", "resultado", "recurso" ou "outro". Para um período (ex.: inscrições de 10 a 30 de março), crie duas datas: o início e o fim. Inclua somente datas explícitas no documento; se a data for "a definir" ou não tiver dia certo, não inclua.
 - cargos: preencha somente se o edital oferece VÁRIOS cargos/vagas com conteúdo programático diferente. Um item por cargo, com nome (cargo e, se houver, a especialidade ou área) e as materias específicas dele (mesmo formato de materias abaixo). Se houver só um cargo, ou o conteúdo for igual para todos, deixe cargos vazio.
 - materias: as disciplinas do CONTEÚDO PROGRAMÁTICO (programa das provas). Quando houver cargos, aqui ficam só as disciplinas COMUNS a todos os cargos (ex.: Língua Portuguesa para todos); as específicas de cada cargo vão dentro de cargos. Sem cargos, aqui ficam todas. Para cada uma:
@@ -56,6 +60,7 @@ export const ESQUEMA_RESPOSTA = {
     banca: { type: "STRING" },
     cargo: { type: "STRING" },
     data_prova: { type: "STRING" },
+    site: { type: "STRING" },
     datas: {
       type: "ARRAY",
       items: {
@@ -81,7 +86,7 @@ export const ESQUEMA_RESPOSTA = {
     },
     materias: { type: "ARRAY", items: MATERIA_SCHEMA },
   },
-  required: ["nome", "banca", "cargo", "data_prova", "datas", "cargos", "materias"],
+  required: ["nome", "banca", "cargo", "data_prova", "site", "datas", "cargos", "materias"],
 } as const;
 
 function str(valor: unknown, max: number): string {
@@ -180,6 +185,7 @@ export function normalizarEdital(bruto: unknown): EditalExtraido {
     banca: str(o.banca, 120),
     cargo: str(o.cargo, 200),
     data_prova: dataValida(str(o.data_prova, 10)),
+    site: normalizarSite(o.site),
     materias,
     cargos,
   };

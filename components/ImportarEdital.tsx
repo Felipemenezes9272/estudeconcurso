@@ -65,7 +65,7 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
     setTextos(materias.map((m) => m.topicos.join("\n")));
   }
 
-  function alterar(campo: "nome" | "banca" | "cargo" | "data_prova", valor: string) {
+  function alterar(campo: "nome" | "banca" | "cargo" | "data_prova" | "site", valor: string) {
     setEdital((atual) => (atual ? { ...atual, [campo]: valor } : atual));
   }
 
@@ -195,6 +195,15 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
         <label>
           Nome
           <input value={edital.nome} onChange={(e) => alterar("nome", e.target.value)} required />
+        </label>
+        <label>
+          Site do concurso (opcional)
+          <input
+            value={edital.site}
+            onChange={(e) => alterar("site", e.target.value)}
+            placeholder="www.banca.org.br/concurso"
+            inputMode="url"
+          />
         </label>
         <div className="row">
           <label style={{ flex: 1, minWidth: 140 }}>

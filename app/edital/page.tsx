@@ -12,6 +12,7 @@ import {
 } from "@/app/actions";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { formatarData } from "@/lib/datas";
+import { dominioDe } from "@/lib/links";
 import { createClient } from "@/lib/supabase/server";
 
 type Topico = { id: string; nome: string; status: string; ordem: number };
@@ -22,6 +23,7 @@ type Concurso = {
   banca: string | null;
   cargo: string | null;
   data_prova: string | null;
+  site_url: string | null;
   materias: Materia[];
 };
 
@@ -49,7 +51,7 @@ export default async function EditalPage() {
   const { data } = await supabase
     .from("concursos")
     .select(
-      "id, nome, banca, cargo, data_prova, materias(id, nome, peso, dificuldade, deleted_at, topicos(id, nome, status, ordem, deleted_at))",
+      "id, nome, banca, cargo, data_prova, site_url, materias(id, nome, peso, dificuldade, deleted_at, topicos(id, nome, status, ordem, deleted_at))",
     )
     .is("deleted_at", null)
     .order("created_at");
@@ -86,6 +88,13 @@ export default async function EditalPage() {
                 .filter(Boolean)
                 .join(" · ") || "Sem detalhes"}
             </p>
+            {concurso.site_url && (
+              <p style={{ margin: "0 0 10px" }}>
+                <a href={concurso.site_url} target="_blank" rel="noopener noreferrer" className="botao">
+                  Abrir site do concurso ({dominioDe(concurso.site_url)})
+                </a>
+              </p>
+            )}
             <div className="barra">
               <span style={{ width: `${pct}%` }} />
             </div>
@@ -115,6 +124,15 @@ export default async function EditalPage() {
                     <input name="data_prova" type="date" defaultValue={concurso.data_prova ?? ""} />
                   </label>
                 </div>
+                <label>
+                  Site do concurso
+                  <input
+                    name="site_url"
+                    defaultValue={concurso.site_url ?? ""}
+                    placeholder="www.banca.org.br/concurso"
+                    inputMode="url"
+                  />
+                </label>
                 <div className="acoes">
                   <button className="primario pequeno">Salvar alterações</button>
                   <BotaoConfirmar
@@ -276,6 +294,10 @@ export default async function EditalPage() {
               <input name="data_prova" type="date" />
             </label>
           </div>
+          <label>
+            Site do concurso (opcional)
+            <input name="site_url" placeholder="www.banca.org.br/concurso" inputMode="url" />
+          </label>
           <button className="primario">Criar concurso</button>
         </form>
       </section>
