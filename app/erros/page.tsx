@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { alterarStatusErro, editarErro, excluirErro, registrarErro } from "@/app/actions";
+import ExplicarErro from "@/components/ExplicarErro";
 import FiltroTopico from "@/components/FiltroTopico";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
 import { listarTopicosParaSelecao } from "@/lib/consultas";
@@ -13,6 +14,7 @@ type Erro = {
   enunciado: string;
   motivo: "desatencao" | "lacuna" | "pegadinha";
   anotacao: string | null;
+  explicacao: string | null;
   status: "pendente" | "dominado";
   ultima_revisao: string | null;
   topicos: { nome: string; materias: { nome: string } | null } | null;
@@ -27,9 +29,9 @@ const MOTIVOS = {
 export default async function ErrosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; motivo?: string; so?: string }>;
+  searchParams: Promise<{ ok?: string; motivo?: string; so?: string; rev?: string; cartao?: string }>;
 }) {
-  const { ok, motivo, so } = await searchParams;
+  const { ok, motivo, so, rev, cartao } = await searchParams;
   const filtro = motivo && motivo in MOTIVOS ? (motivo as keyof typeof MOTIVOS) : null;
 
   const supabase = await createClient();
@@ -37,7 +39,7 @@ export default async function ErrosPage({
     listarTopicosParaSelecao(supabase),
     supabase
       .from("erros")
-      .select("id, topico_id, data, enunciado, motivo, anotacao, status, ultima_revisao, topicos(nome, materias(nome))")
+      .select("id, topico_id, data, enunciado, motivo, anotacao, explicacao, status, ultima_revisao, topicos(nome, materias(nome))")
       .is("deleted_at", null)
       .order("data", { ascending: false })
       .order("created_at", { ascending: false }),
@@ -72,7 +74,17 @@ export default async function ErrosPage({
       {foco && (
         <FiltroTopico rotulo={foco.rotulo} limparHref="/erros" voltarHref={`/estudo/topico?topico=${foco.id}`} />
       )}
-      {ok && <p className="aviso ok">Erro registrado no caderno.</p>}
+      {ok && (
+        <p className="aviso ok">
+          {[
+            cartao && !rev ? "Cartão salvo em Flashcards." : "Erro registrado no caderno.",
+            rev && "Revisão marcada para daqui a 2 dias.",
+            rev && cartao && "Flashcard criado a partir da anotação.",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        </p>
+      )}
 
       <div className="grid">
         {(Object.keys(MOTIVOS) as (keyof typeof MOTIVOS)[]).map((m) => (
@@ -144,6 +156,10 @@ export default async function ErrosPage({
             <label>
               Anotação: o que aprendi com este erro (opcional)
               <textarea name="anotacao" rows={3} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" name="gerar_extras" value="1" defaultChecked />
+              Marcar revisão em 2 dias e criar flashcard com a anotação
             </label>
             <button className="primario">Registrar erro</button>
           </form>
@@ -225,6 +241,10 @@ function ItemErro({ erro }: { erro: Erro }) {
           </button>
         )}
       </form>
+      <details className="editar">
+        <summary>Explicar com IA</summary>
+        <ExplicarErro erroId={erro.id} topicoId={erro.topico_id} explicacaoSalva={erro.explicacao} />
+      </details>
       <details className="editar">
         <summary>Editar ou excluir</summary>
         <form action={editarErro} className="stack">

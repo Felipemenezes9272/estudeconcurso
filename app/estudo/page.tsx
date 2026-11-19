@@ -2,6 +2,7 @@ import Link from "next/link";
 import { definirMeta, editarSessao, excluirSessao } from "@/app/actions";
 import BotaoConfirmar from "@/components/BotaoConfirmar";
 import FormEstudo from "@/components/FormEstudo";
+import QuizDoDia from "@/components/QuizDoDia";
 import {
   carregarEntradasPrioridade,
   listarRevisoesPendentes,
@@ -10,6 +11,7 @@ import {
 import { formatarData, formatarMinutos, hoje, somarDias } from "@/lib/datas";
 import { META_PADRAO, calcularSequencia, montarPlano } from "@/lib/estudo";
 import { ranquear } from "@/lib/prioridades";
+import { tituloDoQuiz } from "@/lib/quiz";
 import { createClient } from "@/lib/supabase/server";
 
 const ROTULO_TIPO: Record<string, string> = {
@@ -27,11 +29,18 @@ export default async function EstudoPage({
   const supabase = await createClient();
 
   const dia = hoje();
-  const [topicos, entradas, revisoes, metaRes, diasRes, recentes] = await Promise.all([
+  const [topicos, entradas, revisoes, metaRes, quizRes, diasRes, recentes] = await Promise.all([
     listarTopicosParaSelecao(supabase),
     carregarEntradasPrioridade(supabase),
     listarRevisoesPendentes(supabase, somarDias(dia, 6)),
     supabase.from("metas_estudo").select("minutos_dia").maybeSingle(),
+    supabase
+      .from("simulados")
+      .select("id, finalizado_em")
+      .eq("titulo", tituloDoQuiz(dia))
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("sessoes_estudo")
       .select("data, minutos")
@@ -102,6 +111,15 @@ export default async function EstudoPage({
             <button className="primario pequeno">Salvar meta</button>
           </form>
         </details>
+      </section>
+
+      <section className="card">
+        <h2>Quiz de abertura do dia</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          5 questões misturando os tópicos que você estudou nos últimos dias. Testar a memória antes de estudar
+          ajuda a fixar. Um quiz por dia.
+        </p>
+        <QuizDoDia idExistente={(quizRes.data as { id: string } | null)?.id} />
       </section>
 
       <section className="card">

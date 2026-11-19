@@ -309,18 +309,61 @@ export async function registrarErro(formData: FormData) {
   if (!enunciado) falhar("Descreva ou identifique a questão.");
   if (!["desatencao", "lacuna", "pegadinha"].includes(motivo)) falhar("Motivo inválido.");
 
+  const anotacao = texto(formData, "anotacao");
   const supabase = await createClient();
   const { error } = await supabase.from("erros").insert({
     topico_id: topicoId,
     enunciado,
     motivo,
-    anotacao: texto(formData, "anotacao") || null,
+    anotacao: anotacao || null,
     data: texto(formData, "data") || hoje(),
   });
   if (error) falhar(error.message);
 
-  revalidatePath("/erros");
-  redirect("/erros?ok=1");
+  // Erro vira revisão (em 2 dias) e, havendo anotação, um flashcard. O erro já está salvo:
+  // se algo aqui falhar, só avisamos que o extra não foi criado.
+  let criouRevisao = false;
+  let criouCartao = false;
+  if (texto(formData, "gerar_extras") === "1") {
+    const limite = somarDias(hoje(), 2);
+    const { count } = await supabase
+      .from("revisoes")
+      .select("id", { count: "exact", head: true })
+      .eq("topico_id", topicoId)
+      .is("data_feita", null)
+      .is("deleted_at", null)
+      .lte("data_prevista", limite);
+    if ((count ?? 0) === 0) {
+      const { error: erroRevisao } = await supabase
+        .from("revisoes")
+        .insert({ topico_id: topicoId, intervalo_dias: 2, data_prevista: limite });
+      criouRevisao = !erroRevisao;
+    }
+    if (anotacao) {
+      const { error: erroCartao } = await supabase
+        .from("flashcards")
+        .insert({ topico_id: topicoId, frente: enunciado.slice(0, 500), verso: anotacao.slice(0, 1000) });
+      criouCartao = !erroCartao;
+    }
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/erros?ok=1${criouRevisao ? "&rev=1" : ""}${criouCartao ? "&cartao=1" : ""}`);
+}
+
+export async function salvarCartaoDoErro(formData: FormData) {
+  const topicoId = texto(formData, "topico_id");
+  const frente = texto(formData, "frente").slice(0, 500);
+  const verso = texto(formData, "verso").slice(0, 1000);
+  if (!topicoId) falhar("Tópico não informado.");
+  if (!frente || !verso) falhar("Preencha a pergunta e a resposta.");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("flashcards").insert({ topico_id: topicoId, frente, verso });
+  if (error) falhar(error.message);
+
+  revalidatePath("/flashcards");
+  redirect("/erros?ok=1&cartao=1");
 }
 
 export async function alterarStatusErro(formData: FormData) {
