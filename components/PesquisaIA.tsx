@@ -11,6 +11,7 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
   const [modo, setModo] = useState<"resumo" | "aula">("resumo");
   const [nivel, setNivel] = useState("intermediario");
   const [duracao, setDuracao] = useState("60");
+  const [naWeb, setNaWeb] = useState(true);
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState("");
   const [podeSemWeb, setPodeSemWeb] = useState(false);
@@ -26,7 +27,7 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
       const resposta = await fetch("/api/pesquisa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topico_id: topicoId, foco, modo, nivel, duracao: Number(duracao), semWeb }),
+        body: JSON.stringify({ topico_id: topicoId, foco, modo, nivel, duracao: Number(duracao), semWeb: semWeb || !naWeb }),
       });
       const json = (await resposta.json().catch(() => ({}))) as Partial<Resultado> & { erro?: string; podeSemWeb?: boolean };
       if (!resposta.ok || !json.texto) {
@@ -86,6 +87,11 @@ export default function PesquisaIA({ topicoId }: { topicoId: string }) {
           </label>
         </div>
       )}
+
+      <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <input type="checkbox" checked={naWeb} onChange={(e) => setNaWeb(e.target.checked)} disabled={buscando} />
+        Pesquisar na web (traz fontes, mas gasta mais da cota gratuita)
+      </label>
 
       <form onSubmit={pesquisar} className="row">
         <label style={{ flex: 1, minWidth: 220 }}>

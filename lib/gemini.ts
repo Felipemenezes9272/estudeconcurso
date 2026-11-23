@@ -264,17 +264,18 @@ export async function pesquisarNaWeb(
 export async function gerarJsonDeTexto(
   prompt: string,
   esquema: object,
+  /** Tarefa simples (cartões, explicação curta): tenta primeiro o modelo mais leve, que gasta menos cota. */
+  leve = false,
 ): Promise<{ ok: true; dados: unknown } | Falha> {
   const chave = process.env.GEMINI_API_KEY;
   if (!chave) {
     return falha("A chave do Gemini ainda não foi configurada. Cadastre GEMINI_API_KEY nas variáveis de ambiente da Vercel.", 503);
   }
-  const modelos = [
-    process.env.GEMINI_MODEL,
-    "gemini-3.8-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash-lite",
-  ].filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
+  const modelos = (
+    leve
+      ? ["gemini-3.5-flash-lite", process.env.GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.8-flash"]
+      : [process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+  ).filter((m, i, lista): m is string => Boolean(m) && lista.indexOf(m) === i);
 
   const prazo = Date.now() + 120_000;
   const chamar = (modelo: string, comPensamento: boolean) =>

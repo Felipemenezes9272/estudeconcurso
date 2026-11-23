@@ -62,10 +62,10 @@ Crie ${quantidade} cartões. Regras:
 
 Material (${c.titulo}):
 """
-${c.texto.slice(0, 20000)}
+${c.texto.slice(0, 12000)}
 """`;
 
-  const resultado = await gerarJsonDeTexto(prompt, ESQUEMA);
+  const resultado = await gerarJsonDeTexto(prompt, ESQUEMA, true);
   if (!resultado.ok) return erro(resultado.erro, resultado.status);
 
   const cartoes = normalizarCartoes(resultado.dados, quantidade);

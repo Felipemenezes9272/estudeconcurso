@@ -74,7 +74,7 @@ Tarefa:
 - cartao: um flashcard de revisão que ajude a fixar o conceito certo: frente = pergunta curta e objetiva; verso = resposta direta em até 3 frases.
 - Não invente artigos de lei, súmulas ou números; se não tiver certeza, diga o conceito sem citá-los.`;
 
-  const resultado = await gerarJsonDeTexto(prompt, ESQUEMA);
+  const resultado = await gerarJsonDeTexto(prompt, ESQUEMA, true);
   if (!resultado.ok) return erro(resultado.erro, resultado.status);
 
   const bruto = (resultado.dados && typeof resultado.dados === "object" ? resultado.dados : {}) as Record<string, unknown>;

@@ -80,7 +80,7 @@ Regras:
 - Não repita o enunciado do pedido nem faça introdução; vá direto ao conteúdo.`;
 
   const semWeb = corpo.semWeb === true;
-  const resultado = await pesquisarNaWeb(aula ? promptAula : prompt, aula ? 16384 : 8192, !semWeb);
+  const resultado = await pesquisarNaWeb(aula ? promptAula : prompt, aula ? { 30: 8192, 60: 12288, 90: 16384 }[duracao as 30] : 6144, !semWeb);
   if (!resultado.ok) {
     // Cota estourada: avisa a tela, que pode oferecer gerar sem a pesquisa na web.
     return NextResponse.json(
