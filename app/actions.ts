@@ -7,10 +7,12 @@ import { hoje, somarDias } from "@/lib/datas";
 import { normalizarEdital } from "@/lib/edital-ia";
 import { tipoValido } from "@/lib/calendario";
 import { normalizarSite } from "@/lib/links";
+import { MIN_QUESTOES_DESEMPENHO } from "@/lib/prioridades";
 import { contarAcertos } from "@/lib/simulados";
 import { agendar, type Nota } from "@/lib/flashcards";
 import {
   INTERVALO_REVISAO_DIFICIL,
+  ajustarRevisoes,
   calcularRevisoes,
   type ResultadoRevisao,
 } from "@/lib/revisoes";
@@ -285,6 +287,36 @@ export async function concluirRevisao(formData: FormData) {
       data_prevista: somarDias(dataFeita, INTERVALO_REVISAO_DIFICIL),
     });
     if (erroExtra) falhar(erroExtra.message);
+  }
+
+  // Adapta as próximas revisões ao resultado (fácil adia, difícil antecipa). Falha aqui não desfaz a revisão feita.
+  if (revisao) {
+    const [futuras, questoes] = await Promise.all([
+      supabase
+        .from("revisoes")
+        .select("id, data_prevista, intervalo_dias")
+        .eq("topico_id", revisao.topico_id)
+        .is("data_feita", null)
+        .is("deleted_at", null)
+        .gt("data_prevista", dataFeita),
+      supabase
+        .from("registros_questoes")
+        .select("total, acertos")
+        .eq("topico_id", revisao.topico_id)
+        .is("deleted_at", null),
+    ]);
+    const lista = (questoes.data ?? []) as { total: number; acertos: number }[];
+    const total = lista.reduce((s, q) => s + q.total, 0);
+    const acertos = lista.reduce((s, q) => s + q.acertos, 0);
+    const taxa = total >= MIN_QUESTOES_DESEMPENHO ? Math.round((acertos / total) * 100) : null;
+
+    // A revisão extra de 3 dias (se houve) não entra no ajuste: só as agendadas por intervalo.
+    const alvo = ((futuras.data ?? []) as { id: string; data_prevista: string; intervalo_dias: number }[]).filter(
+      (r) => r.intervalo_dias !== INTERVALO_REVISAO_DIFICIL,
+    );
+    for (const ajuste of ajustarRevisoes(resultado, dataFeita, alvo, taxa)) {
+      await supabase.from("revisoes").update({ data_prevista: ajuste.data_prevista }).eq("id", ajuste.id);
+    }
   }
 
   revalidatePath("/", "layout");

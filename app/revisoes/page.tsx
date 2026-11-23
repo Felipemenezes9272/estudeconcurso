@@ -22,6 +22,10 @@ export default async function RevisoesPage({
   return (
     <>
       <h1>Revisões</h1>
+      <p className="subtitulo">
+        O botão que você marca ajusta as próximas datas: <strong>Fácil</strong> afasta a próxima revisão,{" "}
+        <strong>Difícil</strong> aproxima e agenda uma extra em 3 dias.
+      </p>
       {foco && (
         <FiltroTopico rotulo={foco.rotulo} limparHref="/revisoes" voltarHref={`/estudo/topico?topico=${foco.id}`} />
       )}
