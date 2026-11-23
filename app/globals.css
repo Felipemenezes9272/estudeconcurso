@@ -1576,3 +1576,54 @@ a.atalho:hover {
   font-weight: 600;
   text-align: center;
 }
+
+/* ---- Retrospectiva da semana ---- */
+.delta {
+  font-weight: 600;
+}
+.delta.bom {
+  color: var(--verde);
+}
+.delta.ruim {
+  color: var(--vermelho);
+}
+.semana-barras {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+.semana-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.semana-coluna {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 44px;
+  height: 120px;
+  border-radius: 8px;
+  background: var(--campo);
+  border: 1px solid var(--borda);
+  overflow: hidden;
+}
+.semana-coluna span {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  background: var(--azul);
+  border-radius: 6px 6px 0 0;
+}
+.semana-min {
+  min-height: 1.1em;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.semana-rotulo {
+  font-size: 0.8rem;
+  color: var(--suave);
+}

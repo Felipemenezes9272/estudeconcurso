@@ -37,6 +37,7 @@ export const SECOES: Secao[] = [
     sub: [
       { href: "/estudo", rotulo: "Estudo de hoje", exato: true },
       { href: "/estudo/topico", rotulo: "Por tópico" },
+      { href: "/estudo/semana", rotulo: "Retrospectiva da semana" },
       { href: "/prioridades", rotulo: "O que estudar primeiro" },
       { href: "/relatorios", rotulo: "Relatórios de evolução" },
     ],
