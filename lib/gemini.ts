@@ -1,6 +1,8 @@
 // Chamada ao Gemini compartilhada pelas funções que leem PDF (edital e simulados).
 // Só roda no servidor: usa a GEMINI_API_KEY.
 
+import { recortarPaginas } from "@/lib/pdf-paginas";
+
 export const LIMITE_PDF_BYTES = 4 * 1024 * 1024; // o corpo de uma função na Vercel aceita ~4,5 MB
 
 export type Falha = { ok: false; erro: string; status: number };
@@ -25,6 +27,14 @@ export async function lerPdf(
   const bytes = Buffer.from(await arquivo.arrayBuffer());
   if (bytes.subarray(0, 4).toString("latin1") !== "%PDF") {
     return falha("Esse arquivo não parece ser um PDF.", 400);
+  }
+
+  // Campo opcional "páginas" (ex.: 3-12, 20): envia só esse trecho à IA, que gasta menos.
+  const paginas = String(form.get("paginas") ?? "").trim();
+  if (paginas) {
+    const recorte = await recortarPaginas(bytes, paginas);
+    if (!recorte.ok) return falha(recorte.erro, 400);
+    return { ok: true, bytes: recorte.bytes };
   }
   return { ok: true, bytes };
 }

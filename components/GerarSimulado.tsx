@@ -42,6 +42,13 @@ export default function GerarSimulado({ topicos }: { topicos: TopicoOpcao[] }) {
         Arquivo PDF com o conteúdo (até 4 MB)
         <input name="pdf" type="file" accept="application/pdf" required disabled={gerando} />
       </label>
+      <label>
+        Páginas a usar (opcional)
+        <input name="paginas" placeholder="Ex.: 3-12, 20" disabled={gerando} />
+        <span className="muted" style={{ fontSize: "0.85rem" }}>
+          Quanto menos páginas, menos a IA lê e menos cota gratuita você gasta.
+        </span>
+      </label>
       <div className="row">
         <label style={{ flex: 1, minWidth: 120 }}>
           Nº de questões

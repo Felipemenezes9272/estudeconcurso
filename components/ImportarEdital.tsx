@@ -125,7 +125,12 @@ export default function ImportarEdital({ chaveConfigurada }: { chaveConfigurada:
             Arquivo PDF (até 4 MB)
             <input name="pdf" type="file" accept="application/pdf" required disabled={etapa === "lendo"} />
           </label>
+          <label>
+            Páginas a ler (opcional)
+            <input name="paginas" placeholder="Ex.: 12-30, 35" disabled={etapa === "lendo"} />
+          </label>
           <p className="muted">
+            Informe só as páginas do conteúdo programático para a IA ler menos e gastar menos da cota gratuita.
             Dica: se o edital for grande, envie só as páginas do conteúdo programático. A IA lê o PDF
             e monta o concurso, as matérias e os tópicos; você revisa antes de salvar.
           </p>
